@@ -97,6 +97,40 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
                 // the above is just to ensure they don't get overwritten later.
                 applyDim(piece);
             }
+            
+            // Apply Hidden effect if ForceHidden is set on this hitobject
+            if (HitObject.ForceHidden)
+            {
+                applyHiddenEffect();
+            }
+        }
+        
+        private void applyHiddenEffect()
+        {
+            // Hidden effect: Apply early fade-out before the object is hit
+            // This is similar to OsuModHidden behavior
+            
+            // Calculate fade-out parameters
+            double fadeOutStartTime = HitObject.StartTime - HitObject.TimePreempt + HitObject.TimeFadeIn;
+            double fadeOutDuration = HitObject.TimePreempt * 0.3; // 30% of preempt time
+            
+            // Apply fade-out transform using this.FadeOut()
+            using (BeginAbsoluteSequence(fadeOutStartTime))
+                this.FadeTo(0, fadeOutDuration);
+            
+            // Also hide approach circles for hidden effect
+            if (this is DrawableHitCircle circle)
+            {
+                // Hide approach circle
+                using (BeginAbsoluteSequence(HitObject.StartTime - HitObject.TimePreempt))
+                    circle.ApproachCircle.Hide();
+            }
+            else if (this is DrawableSpinner spinner)
+            {
+                // Hide spinner approach circle
+                using (BeginAbsoluteSequence(HitObject.StartTime - HitObject.TimePreempt))
+                    spinner.Body.Hide();
+            }
         }
 
         protected override void ClearNestedHitObjects()

@@ -50,6 +50,12 @@ namespace osu.Game.Rulesets.Osu.Objects
 
         public double TimePreempt { get; set; } = 600;
         public double TimeFadeIn = 400;
+        
+        /// <summary>
+        /// Whether this hitobject should have Hidden (HD) effect applied.
+        /// Set by section gimmicks during PostProcess.
+        /// </summary>
+        public bool ForceHidden { get; set; }
 
         private HitObjectProperty<Vector2> position;
 
