@@ -609,6 +609,27 @@ namespace osu.Game.Screens.Edit
             return true;
         }
 
+        public void ApplySectionGimmicksToWholeMapset(Beatmaps.SectionGimmicks.BeatmapSectionGimmicks source)
+        {
+            if (source == null)
+                return;
+
+            var set = Beatmap.Value.BeatmapSetInfo;
+
+            foreach (var difficulty in set.Beatmaps.Where(b => b.ID != editorBeatmap.BeatmapInfo.ID))
+            {
+                var working = beatmapManager.GetWorkingBeatmap(difficulty);
+                var playable = working.GetPlayableBeatmap(difficulty.Ruleset);
+
+                // cannot assign directly due IBeatmap internal setter from another assembly.
+                if (playable is Beatmap target)
+                {
+                    target.SectionGimmicks = Compose.SectionGimmickEditorModel.CloneGimmicks(source);
+                    beatmapManager.Save(difficulty, target, working.GetSkin());
+                }
+            }
+        }
+
         protected override void Update()
         {
             base.Update();

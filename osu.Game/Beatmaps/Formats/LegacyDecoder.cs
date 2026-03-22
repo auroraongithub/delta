@@ -179,6 +179,7 @@ namespace osu.Game.Beatmaps.Formats
             Fonts,
             CatchTheBeat,
             Mania,
+            BeatmapSectionGimmicks,
         }
 
         internal class LegacySampleControlPoint : SampleControlPoint, IEquatable<LegacySampleControlPoint>

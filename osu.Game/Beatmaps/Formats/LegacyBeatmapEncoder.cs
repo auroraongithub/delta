@@ -7,15 +7,18 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using osu.Framework.Graphics.Colour;
 using osu.Game.Audio;
 using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Beatmaps.Legacy;
+using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.Objects.Legacy;
 using osu.Game.Rulesets.Objects.Types;
 using osu.Game.Skinning;
 using osuTK;
 using osuTK.Graphics;
+using Color4 = osuTK.Graphics.Color4;
 
 namespace osu.Game.Beatmaps.Formats
 {
@@ -72,6 +75,9 @@ namespace osu.Game.Beatmaps.Formats
 
             writer.WriteLine();
             handleHitObjects(writer);
+
+            writer.WriteLine();
+            handleSectionGimmicks(writer);
         }
 
         private void handleGeneral(TextWriter writer)
@@ -385,6 +391,60 @@ namespace osu.Game.Beatmaps.Formats
 
             foreach (var h in beatmap.HitObjects)
                 handleHitObject(writer, h);
+        }
+
+        private void handleSectionGimmicks(TextWriter writer)
+        {
+            var sectionGimmicks = beatmap.SectionGimmicks;
+
+            if (sectionGimmicks == null || sectionGimmicks.Sections.Count == 0)
+                return;
+
+            writer.WriteLine("[BeatmapSectionGimmicks]");
+
+            foreach (var section in sectionGimmicks.Sections.OrderBy(s => s.StartTime))
+            {
+                var pairs = serialiseSettings(section.Settings);
+                writer.WriteLine($"{section.Id},{section.StartTime},{section.EndTime},{string.Join('|', pairs)}");
+            }
+        }
+
+        private static IEnumerable<string> serialiseSettings(SectionGimmickSettings settings)
+        {
+            if (settings.EnableHPGimmick) yield return "EnableHPGimmick=True";
+            if (settings.EnableNoMiss) yield return "EnableNoMiss=True";
+            if (settings.EnableCountLimits) yield return "EnableCountLimits=True";
+            if (settings.EnableNoMissedSliderEnd) yield return "EnableNoMissedSliderEnd=True";
+            if (settings.EnableGreatOffsetPenalty) yield return "EnableGreatOffsetPenalty=True";
+
+            if (settings.Max300s >= 0) yield return $"Max300s={settings.Max300s}";
+            if (settings.Max100s >= 0) yield return $"Max100s={settings.Max100s}";
+            if (settings.Max50s >= 0) yield return $"Max50s={settings.Max50s}";
+
+            if (!float.IsNaN(settings.HP300)) yield return $"HP300={settings.HP300.ToString(CultureInfo.InvariantCulture)}";
+            if (!float.IsNaN(settings.HP100)) yield return $"HP100={settings.HP100.ToString(CultureInfo.InvariantCulture)}";
+            if (!float.IsNaN(settings.HP50)) yield return $"HP50={settings.HP50.ToString(CultureInfo.InvariantCulture)}";
+            if (!float.IsNaN(settings.HPMiss)) yield return $"HPMiss={settings.HPMiss.ToString(CultureInfo.InvariantCulture)}";
+
+            if (settings.NoDrain) yield return "NoDrain=True";
+            if (settings.ReverseHP) yield return "ReverseHP=True";
+
+            if (settings.GreatOffsetThresholdMs >= 0) yield return $"GreatOffsetThresholdMs={settings.GreatOffsetThresholdMs.ToString(CultureInfo.InvariantCulture)}";
+            if (!float.IsNaN(settings.GreatOffsetPenaltyHP)) yield return $"GreatOffsetPenaltyHP={settings.GreatOffsetPenaltyHP.ToString(CultureInfo.InvariantCulture)}";
+
+            if (settings.EnableDifficultyOverrides) yield return "EnableDifficultyOverrides=True";
+            if (!float.IsNaN(settings.SectionApproachRate)) yield return $"SectionApproachRate={settings.SectionApproachRate.ToString(CultureInfo.InvariantCulture)}";
+            if (!float.IsNaN(settings.SectionOverallDifficulty)) yield return $"SectionOverallDifficulty={settings.SectionOverallDifficulty.ToString(CultureInfo.InvariantCulture)}";
+
+            if (!string.IsNullOrEmpty(settings.SectionName)) yield return $"SectionName={settings.SectionName}";
+            if (settings.DisplayColor != Color4.White)
+            {
+                uint colorArgb = (uint)(settings.DisplayColor.A * 255);
+                colorArgb |= (uint)(settings.DisplayColor.R * 255) << 8;
+                colorArgb |= (uint)(settings.DisplayColor.G * 255) << 16;
+                colorArgb |= (uint)(settings.DisplayColor.B * 255) << 24;
+                yield return $"DisplayColor={colorArgb}";
+            }
         }
 
         private void handleHitObject(TextWriter writer, HitObject hitObject)

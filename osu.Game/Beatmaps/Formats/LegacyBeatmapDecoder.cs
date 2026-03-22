@@ -3,12 +3,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using osu.Framework.Extensions;
 using osu.Framework.Logging;
 using osu.Game.Audio;
 using osu.Game.Beatmaps.ControlPoints;
+using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Beatmaps.Legacy;
 using osu.Game.Beatmaps.Timing;
 using osu.Game.IO;
@@ -18,6 +20,8 @@ using osu.Game.Rulesets.Objects.Legacy;
 using osu.Game.Rulesets.Objects.Types;
 using osu.Game.Screens.Edit;
 using osu.Game.Utils;
+using osuTK.Graphics;
+using Color4 = osuTK.Graphics.Color4;
 
 namespace osu.Game.Beatmaps.Formats
 {
@@ -234,6 +238,10 @@ namespace osu.Game.Beatmaps.Formats
 
                 case Section.HitObjects:
                     handleHitObject(line);
+                    return;
+
+                case Section.BeatmapSectionGimmicks:
+                    handleSectionGimmick(line);
                     return;
             }
 
@@ -610,6 +618,79 @@ namespace osu.Game.Beatmaps.Formats
             obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
 
             beatmap.HitObjects.Add(obj);
+        }
+
+        private void handleSectionGimmick(string line)
+        {
+            string[] split = line.Split(',', 4);
+            if (split.Length < 3)
+                return;
+
+            if (!int.TryParse(split[0], out int id))
+                return;
+
+            if (!double.TryParse(split[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double startTime))
+                return;
+
+            if (!double.TryParse(split[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double endTime))
+                return;
+
+            var section = new SectionGimmickSection
+            {
+                Id = id,
+                StartTime = startTime,
+                EndTime = endTime,
+                Settings = new SectionGimmickSettings()
+            };
+
+            if (split.Length == 4 && !string.IsNullOrEmpty(split[3]))
+            {
+                foreach (string kv in split[3].Split('|'))
+                {
+                    var pair = SplitKeyVal(kv, '=');
+                    string key = pair.Key;
+                    string value = pair.Value;
+
+                    switch (key)
+                    {
+                        case "EnableHPGimmick": section.Settings.EnableHPGimmick = parseBool(value); break;
+                        case "EnableNoMiss": section.Settings.EnableNoMiss = parseBool(value); break;
+                        case "EnableCountLimits": section.Settings.EnableCountLimits = parseBool(value); break;
+                        case "EnableNoMissedSliderEnd": section.Settings.EnableNoMissedSliderEnd = parseBool(value); break;
+                        case "EnableGreatOffsetPenalty": section.Settings.EnableGreatOffsetPenalty = parseBool(value); break;
+                        case "Max300s": section.Settings.Max300s = Parsing.ParseInt(value); break;
+                        case "Max100s": section.Settings.Max100s = Parsing.ParseInt(value); break;
+                        case "Max50s": section.Settings.Max50s = Parsing.ParseInt(value); break;
+                        case "HP300": section.Settings.HP300 = Parsing.ParseFloat(value); break;
+                        case "HP100": section.Settings.HP100 = Parsing.ParseFloat(value); break;
+                        case "HP50": section.Settings.HP50 = Parsing.ParseFloat(value); break;
+                        case "HPMiss": section.Settings.HPMiss = Parsing.ParseFloat(value); break;
+                        case "NoDrain": section.Settings.NoDrain = parseBool(value); break;
+                        case "ReverseHP": section.Settings.ReverseHP = parseBool(value); break;
+                        case "GreatOffsetThresholdMs": section.Settings.GreatOffsetThresholdMs = Parsing.ParseFloat(value); break;
+                        case "GreatOffsetPenaltyHP": section.Settings.GreatOffsetPenaltyHP = Parsing.ParseFloat(value); break;
+                        case "EnableDifficultyOverrides": section.Settings.EnableDifficultyOverrides = parseBool(value); break;
+                        case "SectionApproachRate": section.Settings.SectionApproachRate = Parsing.ParseFloat(value); break;
+                        case "SectionOverallDifficulty": section.Settings.SectionOverallDifficulty = Parsing.ParseFloat(value); break;
+                        case "SectionName": section.Settings.SectionName = value; break;
+                        case "DisplayColor":
+                            if (uint.TryParse(value, out uint colorArgb))
+                            {
+                                float a = (colorArgb & 0xFF) / 255f;
+                                float r = ((colorArgb >> 8) & 0xFF) / 255f;
+                                float g = ((colorArgb >> 16) & 0xFF) / 255f;
+                                float b = ((colorArgb >> 24) & 0xFF) / 255f;
+                                section.Settings.DisplayColor = new Color4(r, g, b, a);
+                            }
+                            break;
+                    }
+                }
+            }
+
+            beatmap.SectionGimmicks.Sections.Add(section);
+
+            static bool parseBool(string boolValue)
+                => boolValue == "1" || boolValue.Equals("true", StringComparison.OrdinalIgnoreCase);
         }
 
         private int getOffsetTime(int time) => time + (ApplyOffsets ? offset : 0);

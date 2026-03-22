@@ -55,7 +55,7 @@ namespace osu.Game.Rulesets.Osu
 
         public override ScoreProcessor CreateScoreProcessor() => new OsuScoreProcessor();
 
-        public override HealthProcessor CreateHealthProcessor(double drainStartTime) => new OsuHealthProcessor(drainStartTime);
+        public override HealthProcessor CreateHealthProcessor(double drainStartTime) => new SectionGimmickHealthProcessor(drainStartTime);
 
         public override IBeatmapConverter CreateBeatmapConverter(IBeatmap beatmap) => new OsuBeatmapConverter(beatmap, this);
 

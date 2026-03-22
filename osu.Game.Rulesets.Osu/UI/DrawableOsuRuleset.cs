@@ -17,6 +17,8 @@ using osu.Game.Rulesets.Osu.Configuration;
 using osu.Game.Rulesets.Osu.Mods;
 using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.Osu.Replays;
+using osu.Game.Rulesets.Osu.Scoring;
+using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.UI;
 using osu.Game.Scoring;
 using osu.Game.Screens.Play;
@@ -27,6 +29,9 @@ namespace osu.Game.Rulesets.Osu.UI
     public partial class DrawableOsuRuleset : DrawableRuleset<OsuHitObject>
     {
         private Bindable<bool>? cursorHideEnabled;
+
+        [Resolved(canBeNull: true)]
+        private HealthProcessor? healthProcessor { get; set; }
 
         public new OsuInputManager KeyBindingInputManager => (OsuInputManager)base.KeyBindingInputManager;
 
@@ -42,6 +47,10 @@ namespace osu.Game.Rulesets.Osu.UI
         [BackgroundDependencyLoader]
         private void load(ReplayPlayer? replayPlayer)
         {
+            // Section gimmick displays are now provided through the skin system
+            // They will appear in MainHUDComponents container when enabled
+            if (replayPlayer != null)
+
             if (replayPlayer != null)
             {
                 ReplayAnalysisOverlay analysisOverlay;

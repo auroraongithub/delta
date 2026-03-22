@@ -7,6 +7,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Textures;
 using osu.Game.Rulesets.Osu.Objects;
+using osu.Game.Rulesets.Osu.UI;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Screens.Play.HUD;
 using osu.Game.Skinning;
@@ -114,6 +115,8 @@ namespace osu.Game.Rulesets.Osu.Skinning.Legacy
                                     new LegacyKeyCounterDisplay(),
                                     new SpectatorList(),
                                     new DrawableGameplayLeaderboard(),
+                                    new SectionGimmickStatusDisplay(),
+                                    new SectionGimmickDetailsDisplay(),
                                 }
                             };
                     }
@@ -278,6 +281,11 @@ namespace osu.Game.Rulesets.Osu.Skinning.Legacy
                             if (GetTexture(@"approachcircle") != null)
                                 return new LegacyApproachCircle();
 
+                            return null;
+
+                        case OsuSkinComponents.SectionGimmickStatusText:
+                            // section gimmick status text uses a ruleset-side default text fallback.
+                            // legacy skins don't provide this component and should not throw.
                             return null;
 
                         default:

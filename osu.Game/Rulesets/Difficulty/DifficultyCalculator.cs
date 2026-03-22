@@ -12,6 +12,7 @@ using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Lists;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.ControlPoints;
+using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Beatmaps.Timing;
 using osu.Game.Rulesets.Difficulty.Preprocessing;
 using osu.Game.Rulesets.Difficulty.Skills;
@@ -426,6 +427,12 @@ namespace osu.Game.Rulesets.Difficulty
             {
                 get => baseBeatmap.Bookmarks;
                 set => baseBeatmap.Bookmarks = value;
+            }
+
+            public BeatmapSectionGimmicks SectionGimmicks
+            {
+                get => baseBeatmap.SectionGimmicks;
+                set => baseBeatmap.SectionGimmicks = value;
             }
 
             #endregion

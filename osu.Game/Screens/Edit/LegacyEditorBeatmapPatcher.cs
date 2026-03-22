@@ -14,6 +14,7 @@ using DiffPlex.Model;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics.Textures;
 using osu.Game.Beatmaps;
+using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Beatmaps.Formats;
 using osu.Game.Extensions;
@@ -47,8 +48,14 @@ namespace osu.Game.Screens.Edit
             processTimingPoints(() => newBeatmap ??= readBeatmap(newState));
             processBreaks(() => newBeatmap ??= readBeatmap(newState));
             processBookmarks(() => newBeatmap ??= readBeatmap(newState));
+            processSectionGimmicks(() => newBeatmap ??= readBeatmap(newState));
             processHitObjectLocalData(() => newBeatmap ??= readBeatmap(newState));
             editorBeatmap.EndChange();
+        }
+
+        private void processSectionGimmicks(Func<IBeatmap> getNewBeatmap)
+        {
+            editorBeatmap.SectionGimmicks = cloneGimmicks(getNewBeatmap().SectionGimmicks ?? new BeatmapSectionGimmicks());
         }
 
         private void processTimingPoints(Func<IBeatmap> getNewBeatmap)
@@ -242,6 +249,46 @@ namespace osu.Game.Screens.Edit
                 return new PassThroughWorkingBeatmap(decoded).GetPlayableBeatmap(editorBeatmap.BeatmapInfo.Ruleset);
             }
         }
+
+        private static BeatmapSectionGimmicks cloneGimmicks(BeatmapSectionGimmicks source)
+            => new BeatmapSectionGimmicks
+            {
+                Sections = source.Sections.Select(s =>
+                {
+                    var settings = s.Settings ?? new SectionGimmickSettings();
+
+                        return new SectionGimmickSection
+                        {
+                            Id = s.Id,
+                            StartTime = s.StartTime,
+                            EndTime = s.EndTime,
+                            Settings = new SectionGimmickSettings
+                            {
+                                EnableHPGimmick = settings.EnableHPGimmick,
+                                EnableNoMiss = settings.EnableNoMiss,
+                                EnableCountLimits = settings.EnableCountLimits,
+                                EnableNoMissedSliderEnd = settings.EnableNoMissedSliderEnd,
+                                EnableGreatOffsetPenalty = settings.EnableGreatOffsetPenalty,
+                                Max300s = settings.Max300s,
+                                Max100s = settings.Max100s,
+                                Max50s = settings.Max50s,
+                                HP300 = settings.HP300,
+                                HP100 = settings.HP100,
+                                HP50 = settings.HP50,
+                                HPMiss = settings.HPMiss,
+                                NoDrain = settings.NoDrain,
+                                ReverseHP = settings.ReverseHP,
+                                GreatOffsetThresholdMs = settings.GreatOffsetThresholdMs,
+                                GreatOffsetPenaltyHP = settings.GreatOffsetPenaltyHP,
+                                EnableDifficultyOverrides = settings.EnableDifficultyOverrides,
+                                SectionApproachRate = settings.SectionApproachRate,
+                                SectionOverallDifficulty = settings.SectionOverallDifficulty,
+                                SectionName = settings.SectionName,
+                                DisplayColor = settings.DisplayColor,
+                            }
+                    };
+                }).ToList(),
+            };
 
         private class PassThroughWorkingBeatmap : WorkingBeatmap
         {

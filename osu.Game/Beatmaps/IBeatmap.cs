@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Lists;
 using osu.Game.Beatmaps.ControlPoints;
+using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Beatmaps.Timing;
 using osu.Game.Rulesets.Edit;
 using osu.Game.Rulesets.Objects;
@@ -108,6 +109,8 @@ namespace osu.Game.Beatmaps
         int CountdownOffset { get; internal set; }
 
         int[] Bookmarks { get; internal set; }
+
+        BeatmapSectionGimmicks SectionGimmicks { get; internal set; }
 
         int BeatmapVersion { get; }
 

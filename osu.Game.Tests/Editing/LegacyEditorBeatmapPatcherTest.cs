@@ -9,6 +9,7 @@ using NUnit.Framework;
 using osu.Game.Audio;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.Formats;
+using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.IO;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.Objects.Types;
@@ -334,6 +335,51 @@ namespace osu.Game.Tests.Editing
                     new HitCircle { StartTime = 500, Position = new Vector2(100), NewCombo = true },
                     new HitCircle { StartTime = 500, Position = new Vector2(50), NewCombo = true },
                     new HitCircle { StartTime = 500, Position = new Vector2(200), NewCombo = true },
+                }
+            };
+
+            runTest(patch);
+        }
+
+        [Test]
+        public void TestPatchSectionGimmicks()
+        {
+            current.SectionGimmicks = new BeatmapSectionGimmicks
+            {
+                Sections =
+                {
+                    new SectionGimmickSection
+                    {
+                        Id = 0,
+                        StartTime = 0,
+                        EndTime = 1000,
+                        Settings = new SectionGimmickSettings
+                        {
+                            EnableNoMiss = true,
+                        }
+                    },
+                }
+            };
+
+            var patch = new OsuBeatmap
+            {
+                SectionGimmicks =
+                {
+                    Sections =
+                    {
+                        new SectionGimmickSection
+                        {
+                            Id = 2,
+                            StartTime = 1200,
+                            EndTime = -1,
+                            Settings = new SectionGimmickSettings
+                            {
+                                EnableGreatOffsetPenalty = true,
+                                GreatOffsetThresholdMs = 32,
+                                GreatOffsetPenaltyHP = -0.1f,
+                            }
+                        }
+                    }
                 }
             };
 

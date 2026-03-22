@@ -17,6 +17,7 @@ using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Beatmaps.Formats;
 using osu.Game.Beatmaps.Legacy;
+using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.IO;
 using osu.Game.IO.Serialization;
 using osu.Game.Rulesets.Catch;
@@ -236,6 +237,82 @@ namespace osu.Game.Tests.Beatmaps.Formats
             var decodedSlider = (Slider)decodedAfterEncode.beatmap.HitObjects[0];
             Assert.That(decodedSlider.Path.ControlPoints.Select(p => p.Position),
                 Is.EquivalentTo(originalSlider.Path.ControlPoints.Select(p => p.Position)));
+        }
+
+        [Test]
+        public void TestEncodeDecodeSectionGimmicksPersistsSectionNameAndDisplayColor()
+        {
+            var beatmap = new Beatmap
+            {
+                SectionGimmicks = new BeatmapSectionGimmicks
+                {
+                    Sections =
+                    {
+                        new SectionGimmickSection
+                        {
+                            Id = 0,
+                            StartTime = 0,
+                            EndTime = 1500,
+                            Settings = new SectionGimmickSettings
+                            {
+                                EnableHPGimmick = true,
+                                SectionName = "Boss Intro",
+                                DisplayColor = new Color4(0.2f, 0.4f, 0.8f, 1f),
+                            }
+                        }
+                    }
+                }
+            };
+
+            var decodedAfterEncode = decodeFromLegacy(encodeToLegacy((beatmap, new TestLegacySkin(beatmaps_resource_store, string.Empty))), string.Empty);
+
+            Assert.That(decodedAfterEncode.beatmap.SectionGimmicks, Is.Not.Null);
+            Assert.That(decodedAfterEncode.beatmap.SectionGimmicks.Sections.Count, Is.EqualTo(1));
+
+            var section = decodedAfterEncode.beatmap.SectionGimmicks.Sections[0];
+            Assert.That(section.Settings.SectionName, Is.EqualTo("Boss Intro"));
+
+            // color round-trips via 8-bit channel quantisation; compare with tolerance.
+            Assert.That(section.Settings.DisplayColor.R, Is.EqualTo(0.2f).Within(0.01f));
+            Assert.That(section.Settings.DisplayColor.G, Is.EqualTo(0.4f).Within(0.01f));
+            Assert.That(section.Settings.DisplayColor.B, Is.EqualTo(0.8f).Within(0.01f));
+            Assert.That(section.Settings.DisplayColor.A, Is.EqualTo(1f).Within(0.01f));
+        }
+
+        [Test]
+        public void TestEncodeDecodeSectionGimmicksPersistsDifficultyOverrides()
+        {
+            var beatmap = new Beatmap
+            {
+                SectionGimmicks = new BeatmapSectionGimmicks
+                {
+                    Sections =
+                    {
+                        new SectionGimmickSection
+                        {
+                            Id = 0,
+                            StartTime = 0,
+                            EndTime = 1500,
+                            Settings = new SectionGimmickSettings
+                            {
+                                EnableDifficultyOverrides = true,
+                                SectionApproachRate = 10,
+                                SectionOverallDifficulty = 8.5f,
+                            }
+                        }
+                    }
+                }
+            };
+
+            var decodedAfterEncode = decodeFromLegacy(encodeToLegacy((beatmap, new TestLegacySkin(beatmaps_resource_store, string.Empty))), string.Empty);
+
+            Assert.That(decodedAfterEncode.beatmap.SectionGimmicks, Is.Not.Null);
+            Assert.That(decodedAfterEncode.beatmap.SectionGimmicks.Sections.Count, Is.EqualTo(1));
+
+            var section = decodedAfterEncode.beatmap.SectionGimmicks.Sections[0];
+            Assert.That(section.Settings.EnableDifficultyOverrides, Is.True);
+            Assert.That(section.Settings.SectionApproachRate, Is.EqualTo(10).Within(0.001));
+            Assert.That(section.Settings.SectionOverallDifficulty, Is.EqualTo(8.5f).Within(0.001));
         }
 
         [Test]

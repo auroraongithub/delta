@@ -56,6 +56,7 @@ namespace osu.Game.Rulesets.Edit
 
             // Settings
             new CheckInconsistentSettings(),
+            new CheckSectionGimmicks(),
         };
 
         public IEnumerable<Issue> Run(BeatmapVerifierContext context)

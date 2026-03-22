@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Graphics;
 using osu.Game.Beatmaps;
+using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.Objects.Types;
 using osu.Game.Rulesets.Osu.Objects;
+using osu.Game.Rulesets.Osu.Scoring;
 using osuTK;
 
 namespace osu.Game.Rulesets.Osu.Beatmaps
@@ -46,7 +48,39 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
         {
             base.PostProcess();
 
+            applySectionDifficultyOverrides(Beatmap);
+
             ApplyStacking(Beatmap);
+        }
+
+        private static void applySectionDifficultyOverrides(IBeatmap beatmap)
+        {
+            if (beatmap.SectionGimmicks.Sections.Count == 0)
+                return;
+
+            foreach (var hitObject in beatmap.HitObjects.OfType<OsuHitObject>())
+            {
+                SectionGimmickSection? section = SectionGimmickSectionResolver.Resolve(beatmap.SectionGimmicks, hitObject.StartTime);
+                if (section == null)
+                    continue;
+
+                var settings = section.Settings;
+                if (!settings.EnableDifficultyOverrides)
+                    continue;
+
+                if (float.IsNaN(settings.SectionApproachRate) && float.IsNaN(settings.SectionOverallDifficulty))
+                    continue;
+
+                var difficulty = beatmap.Difficulty.Clone();
+
+                if (!float.IsNaN(settings.SectionApproachRate))
+                    difficulty.ApproachRate = settings.SectionApproachRate;
+
+                if (!float.IsNaN(settings.SectionOverallDifficulty))
+                    difficulty.OverallDifficulty = settings.SectionOverallDifficulty;
+
+                hitObject.ApplyDefaults(beatmap.ControlPointInfo, difficulty);
+            }
         }
 
         internal static void ApplyStacking(IBeatmap beatmap)
