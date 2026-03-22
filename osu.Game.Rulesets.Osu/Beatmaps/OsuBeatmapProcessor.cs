@@ -59,7 +59,15 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
         private static void applySectionForcedMods(IBeatmap beatmap)
         {
             if (beatmap.SectionGimmicks.Sections.Count == 0)
+            {
+                foreach (var hitObject in beatmap.HitObjects.OfType<OsuHitObject>())
+                {
+                    setHiddenFlagRecursive(hitObject, false);
+                    restoreFromHardRockTransforms(hitObject);
+                }
+
                 return;
+            }
 
             // Apply forced mods to hit objects based on their section
             foreach (var hitObject in beatmap.HitObjects.OfType<OsuHitObject>())
@@ -71,14 +79,21 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 setHiddenFlagRecursive(hitObject, section?.Settings.ForceHidden == true);
 
                 if (section?.Settings == null)
+                {
+                    restoreFromHardRockTransforms(hitObject);
                     continue;
+                }
 
                 var settings = section.Settings;
 
                 // Apply Hard Rock transformations
                 if (settings.ForceHardRock)
                 {
-                    applyHardRockTransforms(hitObject, beatmap.Difficulty);
+                    applyHardRockTransforms(hitObject);
+                }
+                else
+                {
+                    restoreFromHardRockTransforms(hitObject);
                 }
 
                 // Apply Hidden effect by modifying TimeFadeIn
@@ -91,14 +106,14 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 // Force Flashlight is visual effect handled by the playfield
                 // Store flags for future implementation
             }
+        }
 
-            static void setHiddenFlagRecursive(OsuHitObject osuObject, bool hidden)
-            {
-                osuObject.ForceHidden = hidden;
+        private static void setHiddenFlagRecursive(OsuHitObject osuObject, bool hidden)
+        {
+            osuObject.ForceHidden = hidden;
 
-                foreach (var nested in osuObject.NestedHitObjects.OfType<OsuHitObject>())
-                    setHiddenFlagRecursive(nested, hidden);
-            }
+            foreach (var nested in osuObject.NestedHitObjects.OfType<OsuHitObject>())
+                setHiddenFlagRecursive(nested, hidden);
         }
 
         private static void applyHiddenEffect(OsuHitObject hitObject)
@@ -107,24 +122,102 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
             OsuModHidden.ApplyFadeInAdjustment(hitObject);
         }
 
-        private static void applyHardRockTransforms(OsuHitObject hitObject, IBeatmapDifficultyInfo baseDifficulty)
+        private static void applyHardRockTransforms(OsuHitObject hitObject)
         {
-            // Hard Rock effects:
-            // 1. Circle Size: CS * 1.3 (applied via difficulty parameters in applySectionDifficultyOverrides)
-            // 2. Approach Rate: AR * 1.4, capped at 10 (applied via difficulty parameters in applySectionDifficultyOverrides)
-            // 3. HP: HP * 1.4, capped at 10 (handled elsewhere)
-            // 4. Y-axis flip: Position.Y = 384 - Position.Y (for standard 512px height playfield)
+            const float playfield_height = 384;
 
-            // For Y-axis flip, we need to transform the position
-            // The standard osu! playfield height is 384px (visible area)
-            const double playfield_height = 384;
+            if (!hitObject.ForceHardRockBaselinePosition.HasValue)
+            {
+                hitObject.ForceHardRockBaselinePosition = hitObject.Position;
+            }
+            else if (hitObject.ForceHardRockIsApplied)
+            {
+                // If object appears edited while HR is already applied, fold that edit back to baseline space.
+                Vector2 expectedCurrentHr = new Vector2(hitObject.ForceHardRockBaselinePosition.Value.X, playfield_height - hitObject.ForceHardRockBaselinePosition.Value.Y);
 
-            // Flip Y coordinate
-            hitObject.Y = (float)(playfield_height - hitObject.Y);
+                if (!approximatelyEqual(hitObject.Position, expectedCurrentHr))
+                    hitObject.ForceHardRockBaselinePosition = new Vector2(hitObject.Position.X, playfield_height - hitObject.Position.Y);
+            }
 
-            // Note: Slider path transformation would require more complex handling
-            // to properly recalculate the slider body and end position
-            // The Y-flip for the hitobject position is the main visual effect
+            hitObject.Position = new Vector2(hitObject.ForceHardRockBaselinePosition.Value.X, playfield_height - hitObject.ForceHardRockBaselinePosition.Value.Y);
+            hitObject.ForceHardRockIsApplied = true;
+
+            if (hitObject is Slider slider)
+            {
+                if (slider.ForceHardRockBaselinePath == null)
+                {
+                    slider.ForceHardRockBaselinePath = clonePath(slider.Path);
+                }
+                else if (slider.ForceHardRockPathIsApplied)
+                {
+                    // Detect edits while HR is enabled and fold back to baseline path.
+                    var expectedHrPath = flipPathRelativeToStart(slider.ForceHardRockBaselinePath);
+                    if (!pathApproximatelyEqual(slider.Path, expectedHrPath))
+                        slider.ForceHardRockBaselinePath = flipPathRelativeToStart(slider.Path);
+                }
+
+                slider.Path = flipPathRelativeToStart(slider.ForceHardRockBaselinePath);
+                slider.ForceHardRockPathIsApplied = true;
+            }
+
+            static bool approximatelyEqual(Vector2 a, Vector2 b, float epsilon = 0.01f)
+                => Math.Abs(a.X - b.X) <= epsilon && Math.Abs(a.Y - b.Y) <= epsilon;
+
+            static SliderPath clonePath(SliderPath source)
+            {
+                var clone = new SliderPath();
+                clone.ControlPoints.AddRange(source.ControlPoints.Select(c => new PathControlPoint(c.Position, c.Type)));
+                clone.ExpectedDistance.Value = source.ExpectedDistance.Value;
+                return clone;
+            }
+
+            static SliderPath flipPathRelativeToStart(SliderPath source)
+            {
+                var flipped = new SliderPath();
+
+                if (source.ControlPoints.Count == 0)
+                    return flipped;
+
+                // Control points are relative to slider start position.
+                // HR vertical flip around playfield centre in absolute space becomes sign inversion of relative Y.
+                flipped.ControlPoints.AddRange(source.ControlPoints.Select(c => new PathControlPoint(new Vector2(c.Position.X, -c.Position.Y), c.Type)));
+                flipped.ExpectedDistance.Value = source.ExpectedDistance.Value;
+                return flipped;
+            }
+
+            static bool pathApproximatelyEqual(SliderPath a, SliderPath b, float epsilon = 0.01f)
+            {
+                if (a.ControlPoints.Count != b.ControlPoints.Count)
+                    return false;
+
+                for (int i = 0; i < a.ControlPoints.Count; i++)
+                {
+                    var p1 = a.ControlPoints[i];
+                    var p2 = b.ControlPoints[i];
+
+                    if (p1.Type != p2.Type)
+                        return false;
+
+                    if (Math.Abs(p1.Position.X - p2.Position.X) > epsilon || Math.Abs(p1.Position.Y - p2.Position.Y) > epsilon)
+                        return false;
+                }
+
+                return true;
+            }
+        }
+
+        private static void restoreFromHardRockTransforms(OsuHitObject hitObject)
+        {
+            if (hitObject.ForceHardRockBaselinePosition.HasValue && hitObject.ForceHardRockIsApplied)
+                hitObject.Position = hitObject.ForceHardRockBaselinePosition.Value;
+
+            hitObject.ForceHardRockIsApplied = false;
+
+            if (hitObject is Slider slider && slider.ForceHardRockBaselinePath != null && slider.ForceHardRockPathIsApplied)
+                slider.Path = slider.ForceHardRockBaselinePath;
+
+            if (hitObject is Slider slider2)
+                slider2.ForceHardRockPathIsApplied = false;
         }
 
         private static void adjustDifficultyForDoubleTime(OsuHitObject hitObject, ControlPointInfo controlPointInfo)

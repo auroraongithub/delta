@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using Newtonsoft.Json;
 using osu.Framework.Bindables;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.ControlPoints;
@@ -56,6 +57,18 @@ namespace osu.Game.Rulesets.Osu.Objects
         /// Set by section gimmicks during PostProcess.
         /// </summary>
         public bool ForceHidden { get; set; }
+
+        /// <summary>
+        /// Baseline non-HR position used to make section force-HR reversible.
+        /// </summary>
+        [JsonIgnore]
+        public Vector2? ForceHardRockBaselinePosition { get; set; }
+
+        /// <summary>
+        /// Whether force-HR transform has been applied to this object in the current processing cycle.
+        /// </summary>
+        [JsonIgnore]
+        public bool ForceHardRockIsApplied { get; set; }
 
         private HitObjectProperty<Vector2> position;
 

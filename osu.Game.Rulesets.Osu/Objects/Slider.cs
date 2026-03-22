@@ -44,6 +44,12 @@ namespace osu.Game.Rulesets.Osu.Objects
 
         private readonly SliderPath path = new SliderPath { OptimiseCatmull = true };
 
+        [JsonIgnore]
+        public SliderPath ForceHardRockBaselinePath { get; set; }
+
+        [JsonIgnore]
+        public bool ForceHardRockPathIsApplied { get; set; }
+
         public SliderPath Path
         {
             get => path;

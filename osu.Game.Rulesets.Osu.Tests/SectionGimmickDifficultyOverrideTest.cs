@@ -7,6 +7,7 @@ using osu.Game.Rulesets.Osu.Beatmaps;
 using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.Osu.Scoring;
 using osu.Game.Rulesets.Scoring;
+using osuTK;
 
 namespace osu.Game.Rulesets.Osu.Tests
 {
@@ -272,6 +273,106 @@ namespace osu.Game.Rulesets.Osu.Tests
 
             // Section 1 late object should have AR=10 (after gradual shift completes)
             Assert.That(section1LateObject.TimePreempt, Is.EqualTo(ar10Preempt).Within(0.0001));
+        }
+
+        [Test]
+        public void TestForceHardRockToggleRestoresPosition()
+        {
+            var circle = new HitCircle { StartTime = 1000, Position = new Vector2(128, 100) };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(circle);
+
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    ForceHardRock = true,
+                }
+            });
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+            processor.PostProcess();
+
+            Assert.That(circle.Y, Is.EqualTo(284).Within(0.0001));
+
+            beatmap.SectionGimmicks.Sections[0].Settings.ForceHardRock = false;
+            processor.PostProcess();
+
+            Assert.That(circle.Y, Is.EqualTo(100).Within(0.0001));
+        }
+
+        [Test]
+        public void TestForceHardRockEditWhileEnabledPersistsWhenDisabled()
+        {
+            var circle = new HitCircle { StartTime = 1000, Position = new Vector2(128, 100) };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(circle);
+
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    ForceHardRock = true,
+                }
+            });
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+            processor.PostProcess();
+
+            // Simulate editing while HR is enabled (editing in flipped space).
+            circle.Y = 260;
+            processor.PostProcess();
+
+            beatmap.SectionGimmicks.Sections[0].Settings.ForceHardRock = false;
+            processor.PostProcess();
+
+            // Expected normal-space Y after inverse transform: 384 - 260 = 124
+            Assert.That(circle.Y, Is.EqualTo(124).Within(0.0001));
+        }
+
+        [Test]
+        public void TestForceHardRockAppliesToBoundaryObjects()
+        {
+            var atStart = new HitCircle { StartTime = 1000, Position = new Vector2(128, 50) };
+            var atEnd = new HitCircle { StartTime = 2000, Position = new Vector2(128, 60) };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(atStart);
+            beatmap.HitObjects.Add(atEnd);
+
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 1000,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    ForceHardRock = true,
+                }
+            });
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+            processor.PostProcess();
+
+            Assert.That(atStart.Y, Is.EqualTo(334).Within(0.0001));
+            Assert.That(atEnd.Y, Is.EqualTo(324).Within(0.0001));
         }
     }
 }
