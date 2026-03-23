@@ -78,6 +78,14 @@ namespace osu.Game.Screens.Edit.Components.Timelines.Summary
                     RelativeSizeAxes = Axes.Both,
                     Height = 0.4f
                 },
+                new SectionGimmickBoundaryPart
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    RelativeSizeAxes = Axes.Both,
+                    Height = 0.7f,
+                    Depth = -5,
+                },
                 new PreviewTimePart
                 {
                     Anchor = Anchor.Centre,

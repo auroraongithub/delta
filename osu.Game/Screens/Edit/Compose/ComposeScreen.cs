@@ -90,12 +90,13 @@ namespace osu.Game.Screens.Edit.Compose
                 Height = 0.45f,
             };
 
-            TimelineSectionGimmickBoundaryDisplay sectionBoundaryDisplay = new TimelineSectionGimmickBoundaryDisplay
+            TimelineSectionGimmickBoundaryLineDisplay sectionBoundaryDisplay = new TimelineSectionGimmickBoundaryLineDisplay
             {
                 RelativeSizeAxes = Axes.Both,
                 Anchor = Anchor.CentreLeft,
                 Origin = Anchor.CentreLeft,
-                Alpha = 0.9f,
+                Alpha = 1f,
+                Depth = -200,
             };
 
             return wrapSkinnableContent(new Container
