@@ -286,6 +286,13 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                     }
                 }
 
+                // Preserve non-force-mod running state.
+                // Force mods (like HR multipliers) should affect only the current object,
+                // not become the baseline for subsequent objects.
+                float runningCircleSize = difficulty.CircleSize;
+                float runningApproachRate = difficulty.ApproachRate;
+                float runningOverallDifficulty = difficulty.OverallDifficulty;
+
                 // Apply Hard Rock multipliers if ForceHardRock is enabled
                 // HR: CS * 1.3 (capped at 11), AR/OD * 1.4 (capped at 10)
                 // These are intentionally applied to the currently computed difficulty values,
@@ -298,9 +305,9 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 }
 
                 // Update running difficulty for next object
-                runningDifficulty.CircleSize = difficulty.CircleSize;
-                runningDifficulty.ApproachRate = difficulty.ApproachRate;
-                runningDifficulty.OverallDifficulty = difficulty.OverallDifficulty;
+                runningDifficulty.CircleSize = runningCircleSize;
+                runningDifficulty.ApproachRate = runningApproachRate;
+                runningDifficulty.OverallDifficulty = runningOverallDifficulty;
 
                 hitObject.ApplyDefaults(beatmap.ControlPointInfo, difficulty);
             }

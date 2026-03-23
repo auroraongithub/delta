@@ -428,5 +428,51 @@ namespace osu.Game.Rulesets.Osu.Tests
 
             Assert.That(hit.Scale, Is.EqualTo(expectedScaleObj.Scale).Within(0.0001));
         }
+
+        [Test]
+        public void TestForceHardRockDoesNotLeakOutsideSectionAndDoesNotCompound()
+        {
+            var inside1 = new HitCircle { StartTime = 500, Position = new Vector2(128, 100) };
+            var inside2 = new HitCircle { StartTime = 900, Position = new Vector2(128, 110) };
+            var outside = new HitCircle { StartTime = 1500, Position = new Vector2(128, 120) };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(inside1);
+            beatmap.HitObjects.Add(inside2);
+            beatmap.HitObjects.Add(outside);
+
+            beatmap.Difficulty.ApproachRate = 5;
+            beatmap.Difficulty.OverallDifficulty = 5;
+            beatmap.Difficulty.CircleSize = 5;
+
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    ForceHardRock = true,
+                }
+            });
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+            processor.PostProcess();
+
+            // Inside section: AR should be HR AR(5*1.4=7)
+            var ar7Preempt = 900;
+            Assert.That(inside1.TimePreempt, Is.EqualTo(ar7Preempt).Within(0.0001));
+            Assert.That(inside2.TimePreempt, Is.EqualTo(ar7Preempt).Within(0.0001));
+
+            // Outside section: should return to base AR5 (not stay HR)
+            var ar5Preempt = 1200;
+            Assert.That(outside.TimePreempt, Is.EqualTo(ar5Preempt).Within(0.0001));
+
+            // Position should be restored outside section (no HR flip leakage)
+            Assert.That(outside.Y, Is.EqualTo(120).Within(0.0001));
+        }
     }
 }
