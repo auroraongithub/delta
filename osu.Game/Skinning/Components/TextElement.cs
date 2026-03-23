@@ -27,12 +27,18 @@ namespace osu.Game.Skinning.Components
             {
                 text = new OsuSpriteText
                 {
-                    Anchor = Anchor.Centre,
-                    Origin = Anchor.Centre,
+                    // Keep internal text top-left so component anchor/origin behaviour is intuitive
+                    // and not biased toward centre.
+                    Anchor = Anchor.TopLeft,
+                    Origin = Anchor.TopLeft,
+                    AllowMultiline = true,
                     Font = OsuFont.Default.With(size: 40)
                 }
             };
-            text.Current.BindTo(Text);
+
+            // Settings text boxes are single-line, so users commonly type "\n" to represent new lines.
+            // Convert escaped line breaks to actual new lines for preview/output.
+            Text.BindValueChanged(v => text.Current.Value = (v.NewValue ?? string.Empty).Replace("\\n", "\n"), true);
         }
 
         protected override void SetFont(FontUsage font) => text.Font = font.With(size: 40);

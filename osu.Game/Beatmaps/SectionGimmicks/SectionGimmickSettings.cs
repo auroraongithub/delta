@@ -16,6 +16,7 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         public int Max300s { get; set; } = -1;
         public int Max100s { get; set; } = -1;
         public int Max50s { get; set; } = -1;
+        public int MaxMisses { get; set; } = -1;
 
         public float HP300 { get; set; } = float.NaN;
         public float HP100 { get; set; } = float.NaN;

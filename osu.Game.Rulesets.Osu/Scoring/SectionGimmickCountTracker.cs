@@ -12,6 +12,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
         private int count300;
         private int count100;
         private int count50;
+        private int countMiss;
 
         public void EnterSection(int sectionId)
         {
@@ -22,6 +23,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
             count300 = 0;
             count100 = 0;
             count50 = 0;
+            countMiss = 0;
         }
 
         public void Record(HitResult result)
@@ -39,6 +41,10 @@ namespace osu.Game.Rulesets.Osu.Scoring
                 case HitResult.Meh:
                     count50++;
                     break;
+
+                case HitResult.Miss:
+                    countMiss++;
+                    break;
             }
         }
 
@@ -52,6 +58,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
                 HitResult.Great => settings.Max300s >= 0 && count300 > settings.Max300s,
                 HitResult.Ok => settings.Max100s >= 0 && count100 > settings.Max100s,
                 HitResult.Meh => settings.Max50s >= 0 && count50 > settings.Max50s,
+                HitResult.Miss => settings.MaxMisses >= 0 && countMiss > settings.MaxMisses,
                 _ => false
             };
         }

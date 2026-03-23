@@ -420,6 +420,7 @@ namespace osu.Game.Beatmaps.Formats
             if (settings.Max300s >= 0) yield return $"Max300s={settings.Max300s}";
             if (settings.Max100s >= 0) yield return $"Max100s={settings.Max100s}";
             if (settings.Max50s >= 0) yield return $"Max50s={settings.Max50s}";
+            if (settings.MaxMisses >= 0) yield return $"MaxMisses={settings.MaxMisses}";
 
             if (!float.IsNaN(settings.HP300)) yield return $"HP300={settings.HP300.ToString(CultureInfo.InvariantCulture)}";
             if (!float.IsNaN(settings.HP100)) yield return $"HP100={settings.HP100.ToString(CultureInfo.InvariantCulture)}";

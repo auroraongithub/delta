@@ -10,6 +10,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Localisation;
 using osu.Game.Configuration;
 using osu.Game.Beatmaps.SectionGimmicks;
+using osu.Game.Beatmaps;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Rulesets.Osu.Scoring;
@@ -31,6 +32,9 @@ namespace osu.Game.Rulesets.Osu.UI
 
         [Resolved(canBeNull: true)]
         private IGameplayClock? gameplayClock { get; set; }
+
+        [Resolved(canBeNull: true)]
+        private IBindable<WorkingBeatmap>? workingBeatmap { get; set; }
 
         private OsuSpriteText detailsText = null!;
 
@@ -69,7 +73,7 @@ namespace osu.Game.Rulesets.Osu.UI
                 return;
             }
 
-            LocalisableString text = BuildDetailsLabelForTest(active, new BindableBool(LayoutMode.Value == DetailsLayoutMode.MultiLine));
+            LocalisableString text = BuildDetailsLabelForTest(active, new BindableBool(LayoutMode.Value == DetailsLayoutMode.MultiLine), workingBeatmap?.Value?.Beatmap?.Difficulty);
             if (!EqualityComparer<LocalisableString>.Default.Equals(detailsText.Text, text))
                 detailsText.Text = text;
 
@@ -79,7 +83,7 @@ namespace osu.Game.Rulesets.Osu.UI
         }
 
         // Kept non-public for tests via reflection.
-        private static string BuildDetailsLabelForTest(SectionGimmickSection section, BindableBool multiline)
+        private static string BuildDetailsLabelForTest(SectionGimmickSection section, BindableBool multiline, IBeatmapDifficultyInfo? difficulty = null)
         {
             var settings = section.Settings;
             var details = new List<string>();
@@ -111,6 +115,8 @@ namespace osu.Game.Rulesets.Osu.UI
                     details.Add($"Max100: {settings.Max100s}");
                 if (settings.Max50s >= 0)
                     details.Add($"Max50: {settings.Max50s}");
+                if (settings.MaxMisses >= 0)
+                    details.Add($"MaxMiss: {settings.MaxMisses}");
             }
 
             if (settings.EnableNoMissedSliderEnd)
@@ -120,6 +126,19 @@ namespace osu.Game.Rulesets.Osu.UI
             {
                 if (settings.GreatOffsetThresholdMs >= 0)
                     details.Add($"OffsetThreshold: {settings.GreatOffsetThresholdMs}ms");
+                double? effectiveOd = null;
+                if (settings.EnableDifficultyOverrides && !float.IsNaN(settings.SectionOverallDifficulty))
+                    effectiveOd = settings.SectionOverallDifficulty;
+                else if (difficulty != null)
+                    effectiveOd = difficulty.OverallDifficulty;
+
+                if (effectiveOd != null)
+                {
+                    var hitWindows = new OsuHitWindows();
+                    hitWindows.SetDifficulty(effectiveOd.Value);
+                    double perfectWindow = hitWindows.WindowFor(HitResult.Great);
+                    details.Add($"Perfect(300)@OD{effectiveOd.Value:0.##}: ±{perfectWindow:0.###}ms");
+                }
                 if (!float.IsNaN(settings.GreatOffsetPenaltyHP))
                     details.Add($"OffsetPenalty: {settings.GreatOffsetPenaltyHP:+0.###;-0.###}");
             }

@@ -515,7 +515,8 @@ namespace osu.Game.Overlays.SkinEditor
                 // give newly added components a sane starting location.
                 drawableComponent.Origin = Anchor.TopCentre;
                 drawableComponent.Anchor = Anchor.TopCentre;
-                drawableComponent.Y = targetContainer.DrawSize.Y / 2;
+                // Start near the top so auto-closest-anchor doesn't always snap to centre.
+                drawableComponent.Y = 0;
             }
 
             try

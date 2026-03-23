@@ -272,6 +272,7 @@ namespace osu.Game.Screens.Edit
                                 Max300s = settings.Max300s,
                                 Max100s = settings.Max100s,
                                 Max50s = settings.Max50s,
+                                MaxMisses = settings.MaxMisses,
                                 HP300 = settings.HP300,
                                 HP100 = settings.HP100,
                                 HP50 = settings.HP50,

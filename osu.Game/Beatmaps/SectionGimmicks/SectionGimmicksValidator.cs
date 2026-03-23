@@ -20,7 +20,7 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                 if (section.EndTime >= 0 && section.StartTime >= section.EndTime)
                     throw new InvalidOperationException($"Section {section.Id} has invalid range.");
 
-                if (settings.Max300s < -1 || settings.Max100s < -1 || settings.Max50s < -1)
+                if (settings.Max300s < -1 || settings.Max100s < -1 || settings.Max50s < -1 || settings.MaxMisses < -1)
                     throw new InvalidOperationException($"Section {section.Id} has invalid max counts.");
 
                 validateRange(settings.HP300, section.Id, nameof(settings.HP300));

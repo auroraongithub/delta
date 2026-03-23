@@ -4,6 +4,7 @@
 using System.Reflection;
 using NUnit.Framework;
 using osu.Framework.Bindables;
+using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Rulesets.Osu.UI;
 
@@ -69,13 +70,37 @@ namespace osu.Game.Rulesets.Osu.Tests
             Assert.That(label, Does.Not.Contain(" | "));
         }
 
-        private static string invokeBuildLabel(SectionGimmickSection section, bool multiline)
+        [Test]
+        public void TestBuildDetailsLabelShowsMaxMissAndPerfectWindowReference()
+        {
+            var section = new SectionGimmickSection
+            {
+                Id = 1,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableCountLimits = true,
+                    MaxMisses = 2,
+                    EnableGreatOffsetPenalty = true,
+                    GreatOffsetThresholdMs = 20,
+                }
+            };
+
+            string label = invokeBuildLabel(section, false, new BeatmapDifficulty { OverallDifficulty = 8 });
+
+            Assert.That(label, Does.Contain("MaxMiss: 2"));
+            Assert.That(label, Does.Contain("Perfect(300)@OD8"));
+            Assert.That(label, Does.Contain("±31.5ms"));
+        }
+
+        private static string invokeBuildLabel(SectionGimmickSection section, bool multiline, IBeatmapDifficultyInfo? difficulty = null)
         {
             var method = typeof(SectionGimmickDetailsDisplay).GetMethod("BuildDetailsLabelForTest", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.That(method, Is.Not.Null);
 
             var bindable = new BindableBool(multiline);
-            return (string)method!.Invoke(null, new object[] { section, bindable })!;
+            return (string)method!.Invoke(null, new object?[] { section, bindable, difficulty })!;
         }
     }
 }

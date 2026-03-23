@@ -41,6 +41,7 @@ namespace osu.Game.Tests.Editing
                 s.EnableNoMiss = true;
                 s.EnableCountLimits = true;
                 s.Max100s = 3;
+                s.MaxMisses = 1;
             });
 
             int sourceId = model.SelectedSectionId.Value;
@@ -62,6 +63,7 @@ namespace osu.Game.Tests.Editing
             Assert.That(target.Settings.EnableNoMiss, Is.True);
             Assert.That(target.Settings.EnableCountLimits, Is.True);
             Assert.That(target.Settings.Max100s, Is.EqualTo(3));
+            Assert.That(target.Settings.MaxMisses, Is.EqualTo(1));
         }
 
         [Test]

@@ -81,7 +81,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
             if (section != null)
             {
                 var settings = section.Settings;
-                if (settings.EnableGreatOffsetPenalty && result.Type == HitResult.Great)
+                if (settings.EnableGreatOffsetPenalty && shouldApplyOffsetPenalty(settings, result))
                 {
                     if (Math.Abs(result.TimeOffset) > settings.GreatOffsetThresholdMs)
                         Health.Value += settings.GreatOffsetPenaltyHP;
@@ -139,6 +139,33 @@ namespace osu.Game.Rulesets.Osu.Scoring
             }
 
             return section;
+        }
+
+        private static bool shouldApplyOffsetPenalty(SectionGimmickSettings settings, JudgementResult result)
+        {
+            bool baseApplicable = result.Type is HitResult.Great or HitResult.Ok or HitResult.Meh;
+            if (!baseApplicable)
+                return false;
+
+            // If HP gimmick already provides explicit per-judgement punishment for this result,
+            // avoid double-penalising that same judgement type.
+            if (!settings.EnableHPGimmick)
+                return true;
+
+            float configured = result.Type switch
+            {
+                HitResult.Great => settings.HP300,
+                HitResult.Ok => settings.HP100,
+                HitResult.Meh => settings.HP50,
+                _ => float.NaN,
+            };
+
+            if (float.IsNaN(configured))
+                return true;
+
+            double resultingHealthDelta = settings.ReverseHP ? configured : -configured;
+            bool hpGimmickAlreadyPunishes = resultingHealthDelta < 0;
+            return !hpGimmickAlreadyPunishes;
         }
     }
 }

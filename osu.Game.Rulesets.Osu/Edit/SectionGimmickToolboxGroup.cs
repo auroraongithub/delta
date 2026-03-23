@@ -71,6 +71,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormNumberBox max300s = null!;
         private FormNumberBox max100s = null!;
         private FormNumberBox max50s = null!;
+        private FormNumberBox maxMisses = null!;
 
         private FormCheckBox enableNoMissedSliderEnd = null!;
 
@@ -274,6 +275,11 @@ namespace osu.Game.Rulesets.Osu.Edit
                                         Caption = "Max50s (-1 unlimited)",
                                         TabbableContentContainer = this,
                                     },
+                                    maxMisses = new FormNumberBox
+                                    {
+                                        Caption = "MaxMisses (-1 unlimited)",
+                                        TabbableContentContainer = this,
+                                    },
                                 }
                             },
 
@@ -449,6 +455,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             max300s.OnCommit += (_, _) => updateIntSetting(max300s, (s, v) => s.Max300s = v);
             max100s.OnCommit += (_, _) => updateIntSetting(max100s, (s, v) => s.Max100s = v);
             max50s.OnCommit += (_, _) => updateIntSetting(max50s, (s, v) => s.Max50s = v);
+            maxMisses.OnCommit += (_, _) => updateIntSetting(maxMisses, (s, v) => s.MaxMisses = v);
 
             enableNoMissedSliderEnd.Current.BindValueChanged(v => mutateSetting(s => s.EnableNoMissedSliderEnd = v.NewValue));
 
@@ -548,6 +555,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 max300s.Current.Value = settings.Max300s.ToString(CultureInfo.InvariantCulture);
                 max100s.Current.Value = settings.Max100s.ToString(CultureInfo.InvariantCulture);
                 max50s.Current.Value = settings.Max50s.ToString(CultureInfo.InvariantCulture);
+                maxMisses.Current.Value = settings.MaxMisses.ToString(CultureInfo.InvariantCulture);
 
                 enableNoMissedSliderEnd.Current.Value = settings.EnableNoMissedSliderEnd;
 

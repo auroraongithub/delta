@@ -661,6 +661,7 @@ namespace osu.Game.Beatmaps.Formats
                         case "Max300s": section.Settings.Max300s = Parsing.ParseInt(value); break;
                         case "Max100s": section.Settings.Max100s = Parsing.ParseInt(value); break;
                         case "Max50s": section.Settings.Max50s = Parsing.ParseInt(value); break;
+                        case "MaxMisses": section.Settings.MaxMisses = Parsing.ParseInt(value); break;
                         case "HP300": section.Settings.HP300 = Parsing.ParseFloat(value); break;
                         case "HP100": section.Settings.HP100 = Parsing.ParseFloat(value); break;
                         case "HP50": section.Settings.HP50 = Parsing.ParseFloat(value); break;

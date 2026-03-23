@@ -375,6 +375,8 @@ namespace osu.Game.Tests.Editing
                             Settings = new SectionGimmickSettings
                             {
                                 EnableGreatOffsetPenalty = true,
+                                EnableCountLimits = true,
+                                MaxMisses = 1,
                                 GreatOffsetThresholdMs = 32,
                                 GreatOffsetPenaltyHP = -0.1f,
                             }
