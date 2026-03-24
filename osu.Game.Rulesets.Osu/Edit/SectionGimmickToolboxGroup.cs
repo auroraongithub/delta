@@ -432,6 +432,8 @@ namespace osu.Game.Rulesets.Osu.Edit
                                 AutoSizeAxes = Axes.Y,
                                 Direction = FillDirection.Vertical,
                                 Spacing = new Vector2(5),
+                                Alpha = 0,
+                                AlwaysPresent = true,
                                 Children = new Drawable[]
                                 {
                                     forceTransform = new FormCheckBox
@@ -605,7 +607,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                     s.ForceSingleTap = false;
             }));
 
-            showFunMods.Current.BindValueChanged(v => funModsPanel.FadeTo(v.NewValue ? 1 : 0, 200, Easing.OutQuint));
+            showFunMods.Current.BindValueChanged(v =>
+            {
+                funModsPanel.FadeTo(v.NewValue ? 1 : 0, 200, Easing.OutQuint);
+            });
 
             forceTransform.Current.BindValueChanged(v => mutateSetting(s => s.ForceTransform = v.NewValue));
             forceWiggle.Current.BindValueChanged(v => mutateSetting(s => s.ForceWiggle = v.NewValue));
@@ -727,15 +732,14 @@ namespace osu.Game.Rulesets.Osu.Edit
                 forceSingleTap.Current.Value = settings.ForceSingleTap;
                 forceAlternate.Current.Value = settings.ForceAlternate;
 
-                // Fun mods - determine if any are enabled to auto-show panel
+                // Fun mods - only update checkbox state, don't auto-show panel
+                // The user controls panel visibility via the checkbox
                 bool anyFunMod = settings.ForceTransform || settings.ForceWiggle || settings.ForceSpinIn
                     || settings.ForceGrow || settings.ForceDeflate || settings.ForceBarrelRoll
                     || settings.ForceApproachDifferent || settings.ForceMuted || settings.ForceNoScope
                     || settings.ForceMagnetised || settings.ForceRepel || settings.ForceFreezeFrame
                     || settings.ForceBubbles || settings.ForceSynesthesia || settings.ForceDepth || settings.ForceBloom;
                 showFunMods.Current.Value = anyFunMod;
-                funModsPanel.AlwaysPresent = true;
-                funModsPanel.FadeTo(anyFunMod ? 1 : 0, 0);
 
                 forceTransform.Current.Value = settings.ForceTransform;
                 forceWiggle.Current.Value = settings.ForceWiggle;
