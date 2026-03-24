@@ -91,6 +91,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormNumberBox sectionOverallDifficulty = null!;
 
         private FormCheckBox forceHidden = null!;
+        private FormCheckBox forceNoApproachCircle = null!;
         private FormCheckBox forceHardRock = null!;
         private FormCheckBox forceFlashlight = null!;
         private FormCheckBox forceDoubleTime = null!;
@@ -372,6 +373,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                             {
                                 Caption = "Force Hidden (HD)",
                             },
+                            forceNoApproachCircle = new FormCheckBox
+                            {
+                                Caption = "Force No Approach Circle",
+                            },
                             forceHardRock = new FormCheckBox
                             {
                                 Caption = "Force Hard Rock (HR)",
@@ -472,6 +477,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             sectionOverallDifficulty.OnCommit += (_, _) => updateFloatSetting(sectionOverallDifficulty, (s, v) => s.SectionOverallDifficulty = v);
 
             forceHidden.Current.BindValueChanged(v => mutateSetting(s => s.ForceHidden = v.NewValue));
+            forceNoApproachCircle.Current.BindValueChanged(v => mutateSetting(s => s.ForceNoApproachCircle = v.NewValue));
             forceHardRock.Current.BindValueChanged(v => mutateSetting(s => s.ForceHardRock = v.NewValue));
             forceFlashlight.Current.BindValueChanged(v => mutateSetting(s => s.ForceFlashlight = v.NewValue));
             forceDoubleTime.Current.BindValueChanged(v => mutateSetting(s => s.ForceDoubleTime = v.NewValue));
@@ -572,6 +578,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 sectionOverallDifficulty.Current.Value = formatFloat(settings.SectionOverallDifficulty);
 
                 forceHidden.Current.Value = settings.ForceHidden;
+                forceNoApproachCircle.Current.Value = settings.ForceNoApproachCircle;
                 forceHardRock.Current.Value = settings.ForceHardRock;
                 forceFlashlight.Current.Value = settings.ForceFlashlight;
                 forceDoubleTime.Current.Value = settings.ForceDoubleTime;

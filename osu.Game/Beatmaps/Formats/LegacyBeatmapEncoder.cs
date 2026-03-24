@@ -441,6 +441,7 @@ namespace osu.Game.Beatmaps.Formats
             if (!float.IsNaN(settings.SectionApproachRate)) yield return $"SectionApproachRate={settings.SectionApproachRate.ToString(CultureInfo.InvariantCulture)}";
             if (!float.IsNaN(settings.SectionOverallDifficulty)) yield return $"SectionOverallDifficulty={settings.SectionOverallDifficulty.ToString(CultureInfo.InvariantCulture)}";
             if (settings.ForceHidden) yield return "ForceHidden=True";
+            if (settings.ForceNoApproachCircle) yield return "ForceNoApproachCircle=True";
             if (settings.ForceHardRock) yield return "ForceHardRock=True";
             if (settings.ForceFlashlight) yield return "ForceFlashlight=True";
             if (settings.ForceDoubleTime) yield return "ForceDoubleTime=True";

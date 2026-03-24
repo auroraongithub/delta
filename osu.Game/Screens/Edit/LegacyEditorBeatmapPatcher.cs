@@ -288,6 +288,11 @@ namespace osu.Game.Screens.Edit
                                 SectionCircleSize = settings.SectionCircleSize,
                                 SectionApproachRate = settings.SectionApproachRate,
                                 SectionOverallDifficulty = settings.SectionOverallDifficulty,
+                                ForceHidden = settings.ForceHidden,
+                                ForceNoApproachCircle = settings.ForceNoApproachCircle,
+                                ForceHardRock = settings.ForceHardRock,
+                                ForceFlashlight = settings.ForceFlashlight,
+                                ForceDoubleTime = settings.ForceDoubleTime,
                                 SectionName = settings.SectionName,
                                 DisplayColor = settings.DisplayColor,
                             }

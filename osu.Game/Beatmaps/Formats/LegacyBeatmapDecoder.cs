@@ -678,6 +678,7 @@ namespace osu.Game.Beatmaps.Formats
                         case "SectionApproachRate": section.Settings.SectionApproachRate = Parsing.ParseFloat(value); break;
                         case "SectionOverallDifficulty": section.Settings.SectionOverallDifficulty = Parsing.ParseFloat(value); break;
                         case "ForceHidden": section.Settings.ForceHidden = parseBool(value); break;
+                        case "ForceNoApproachCircle": section.Settings.ForceNoApproachCircle = parseBool(value); break;
                         case "ForceHardRock": section.Settings.ForceHardRock = parseBool(value); break;
                         case "ForceFlashlight": section.Settings.ForceFlashlight = parseBool(value); break;
                         case "ForceDoubleTime": section.Settings.ForceDoubleTime = parseBool(value); break;

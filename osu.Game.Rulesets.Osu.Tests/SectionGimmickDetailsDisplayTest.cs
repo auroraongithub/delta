@@ -94,6 +94,26 @@ namespace osu.Game.Rulesets.Osu.Tests
             Assert.That(label, Does.Contain("±31.5ms"));
         }
 
+        [Test]
+        public void TestBuildDetailsLabelShowsNoApproachCircleMarker()
+        {
+            var section = new SectionGimmickSection
+            {
+                Id = 2,
+                StartTime = 1000,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableDifficultyOverrides = true,
+                    SectionApproachRate = 9,
+                    ForceNoApproachCircle = true,
+                }
+            };
+
+            string label = invokeBuildLabel(section, false);
+            Assert.That(label, Does.Contain("NoApproachCircle"));
+        }
+
         private static string invokeBuildLabel(SectionGimmickSection section, bool multiline, IBeatmapDifficultyInfo? difficulty = null)
         {
             var method = typeof(SectionGimmickDetailsDisplay).GetMethod("BuildDetailsLabelForTest", BindingFlags.NonPublic | BindingFlags.Static);

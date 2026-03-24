@@ -63,6 +63,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 foreach (var hitObject in beatmap.HitObjects.OfType<OsuHitObject>())
                 {
                     setHiddenFlagRecursive(hitObject, false);
+                    setNoApproachCircleFlagRecursive(hitObject, false);
                     restoreFromHardRockTransforms(hitObject);
                 }
 
@@ -77,6 +78,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 // Always write the flag so drawable layer can reliably detect section-forced HD.
                 // Also propagate to nested objects because Hidden is applied per drawable hitobject.
                 setHiddenFlagRecursive(hitObject, section?.Settings.ForceHidden == true);
+                setNoApproachCircleFlagRecursive(hitObject, section?.Settings.ForceNoApproachCircle == true);
 
                 if (section?.Settings == null)
                 {
@@ -113,6 +115,14 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
 
             foreach (var nested in osuObject.NestedHitObjects.OfType<OsuHitObject>())
                 setHiddenFlagRecursive(nested, hidden);
+        }
+
+        private static void setNoApproachCircleFlagRecursive(OsuHitObject osuObject, bool noApproachCircle)
+        {
+            osuObject.ForceNoApproachCircle = noApproachCircle;
+
+            foreach (var nested in osuObject.NestedHitObjects.OfType<OsuHitObject>())
+                setNoApproachCircleFlagRecursive(nested, noApproachCircle);
         }
 
         private static void applyHiddenEffect(OsuHitObject hitObject)

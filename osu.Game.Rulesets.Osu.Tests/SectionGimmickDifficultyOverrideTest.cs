@@ -537,5 +537,38 @@ namespace osu.Game.Rulesets.Osu.Tests
             beatmap.SectionGimmicks.Sections[0].Settings.ForceFlashlight = false;
             Assert.That(osu.Game.Rulesets.Osu.UI.SectionGimmickFlashlightOverlay.HasAnyForcedFlashlightSection(beatmap), Is.False);
         }
+
+        [Test]
+        public void TestForceNoApproachCircleFlagsAppliedBySection()
+        {
+            var inside = new HitCircle { StartTime = 500 };
+            var outside = new HitCircle { StartTime = 1500 };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(inside);
+            beatmap.HitObjects.Add(outside);
+
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    ForceNoApproachCircle = true,
+                }
+            });
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+
+            processor.PostProcess();
+
+            Assert.That(inside.ForceNoApproachCircle, Is.True);
+            Assert.That(outside.ForceNoApproachCircle, Is.False);
+        }
     }
 }

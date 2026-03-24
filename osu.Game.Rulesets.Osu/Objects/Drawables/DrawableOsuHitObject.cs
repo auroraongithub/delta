@@ -81,6 +81,11 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
         {
             base.UpdateInitialTransforms();
 
+            // Keep this before section-hidden handling. Both effects can coexist,
+            // and this one targets approach circles only.
+            if (HitObject.ForceNoApproachCircle)
+                applyNoApproachCircleEffect();
+
             foreach (var piece in DimmablePieces)
             {
                 // if the specified dimmable piece is a DHO, it is generally not safe to tack transforms onto it directly
@@ -105,7 +110,24 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
                 applyHiddenEffect();
             }
         }
-        
+
+        private void applyNoApproachCircleEffect()
+        {
+            // Reuse hidden helper in approach-circle-only mode.
+            ApplyCustomUpdateState -= applySectionNoApproachCircleState;
+            ApplyCustomUpdateState += applySectionNoApproachCircleState;
+
+            applySectionNoApproachCircleState(this, State.Value);
+        }
+
+        private void applySectionNoApproachCircleState(DrawableHitObject drawable, ArmedState state)
+        {
+            if (!HitObject.ForceNoApproachCircle)
+                return;
+
+            OsuModHidden.ApplyHiddenState(drawable, increaseVisibility: false, onlyFadeApproachCircles: true);
+        }
+
         private void applyHiddenEffect()
         {
             // Reuse exact hidden visual logic from OsuModHidden for 1:1 behaviour.

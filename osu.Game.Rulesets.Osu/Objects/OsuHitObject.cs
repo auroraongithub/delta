@@ -59,6 +59,12 @@ namespace osu.Game.Rulesets.Osu.Objects
         public bool ForceHidden { get; set; }
 
         /// <summary>
+        /// Whether this hitobject should hide its approach circle only.
+        /// Set by section gimmicks during PostProcess.
+        /// </summary>
+        public bool ForceNoApproachCircle { get; set; }
+
+        /// <summary>
         /// Baseline non-HR position used to make section force-HR reversible.
         /// </summary>
         [JsonIgnore]

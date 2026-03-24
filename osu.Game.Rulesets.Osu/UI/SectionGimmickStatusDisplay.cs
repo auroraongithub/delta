@@ -81,6 +81,22 @@ namespace osu.Game.Rulesets.Osu.UI
                 ? $"Section {section.Id}"
                 : settings.SectionName;
 
+            var tags = new List<string>();
+
+            if (settings.ForceHidden)
+                tags.Add("HD");
+            if (settings.ForceNoApproachCircle)
+                tags.Add("NoAC");
+            if (settings.ForceHardRock)
+                tags.Add("HR");
+            if (settings.ForceFlashlight)
+                tags.Add("FL");
+            if (settings.ForceDoubleTime)
+                tags.Add("DT");
+
+            if (tags.Count > 0)
+                return $"{sectionName} ({string.Join(", ", tags)})";
+
             return sectionName;
         }
     }

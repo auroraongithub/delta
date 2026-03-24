@@ -160,6 +160,8 @@ namespace osu.Game.Rulesets.Osu.UI
                 // Display forced mods
                 if (settings.ForceHidden)
                     details.Add("HD");
+                if (settings.ForceNoApproachCircle)
+                    details.Add("NoApproachCircle");
                 if (settings.ForceHardRock)
                     details.Add("HR");
                 if (settings.ForceFlashlight)

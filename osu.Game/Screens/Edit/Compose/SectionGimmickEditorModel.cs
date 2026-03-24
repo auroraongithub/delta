@@ -260,6 +260,7 @@ namespace osu.Game.Screens.Edit.Compose
                 SectionApproachRate = settings.SectionApproachRate,
                 SectionOverallDifficulty = settings.SectionOverallDifficulty,
                 ForceHidden = settings.ForceHidden,
+                ForceNoApproachCircle = settings.ForceNoApproachCircle,
                 ForceHardRock = settings.ForceHardRock,
                 ForceFlashlight = settings.ForceFlashlight,
                 ForceDoubleTime = settings.ForceDoubleTime,
