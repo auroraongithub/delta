@@ -120,9 +120,15 @@ namespace osu.Game.Rulesets.Osu.UI
 
         private void updatePlayfieldMods()
         {
+            bool hasCursor = drawableRuleset.Playfield.Cursor != null;
+
             foreach (var forced in forcedMods)
             {
                 if (forced.Mod is not IUpdatableByPlayfield updatableByPlayfield)
+                    continue;
+
+                // Editor playfield has no cursor. Skip cursor-dependent updates there.
+                if (forced.RequiresCursor && !hasCursor)
                     continue;
 
                 if (forced.AlwaysUpdateWhenPresent || isEnabledAtTime(forced, Time.Current))
@@ -179,7 +185,7 @@ namespace osu.Game.Rulesets.Osu.UI
             var brSettings = getFirstSectionWithMod(s => s.ForceBarrelRoll);
             if (brSettings != null)
                 barrelRollMod.SpinSpeed.Value = brSettings.BarrelRollSpinSpeed;
-            addIfForced(barrelRollMod, s => s.ForceBarrelRoll, applyToAllDrawables: true, alwaysUpdateWhenPresent: true);
+            addIfForced(barrelRollMod, s => s.ForceBarrelRoll, applyToAllDrawables: true, alwaysUpdateWhenPresent: true, requiresCursor: true);
 
             var mutedMod = new OsuModMuted();
             var mutedSettings = getFirstSectionWithMod(s => s.ForceMuted);
@@ -191,19 +197,19 @@ namespace osu.Game.Rulesets.Osu.UI
             var nsSettings = getFirstSectionWithMod(s => s.ForceNoScope);
             if (nsSettings != null)
                 noScopeMod.HiddenComboCount.Value = nsSettings.NoScopeHiddenComboCount;
-            addIfForced(noScopeMod, s => s.ForceNoScope, applyToAllDrawables: true, alwaysUpdateWhenPresent: true);
+            addIfForced(noScopeMod, s => s.ForceNoScope, applyToAllDrawables: true, alwaysUpdateWhenPresent: true, requiresCursor: true);
 
             var magnetisedMod = new OsuModMagnetised();
             var magSettings = getFirstSectionWithMod(s => s.ForceMagnetised);
             if (magSettings != null)
                 magnetisedMod.AttractionStrength.Value = magSettings.MagnetisedAttractionStrength;
-            addIfForced(magnetisedMod, s => s.ForceMagnetised, applyToAllDrawables: true, alwaysUpdateWhenPresent: true);
+            addIfForced(magnetisedMod, s => s.ForceMagnetised, applyToAllDrawables: true, alwaysUpdateWhenPresent: true, requiresCursor: true);
 
             var repelMod = new OsuModRepel();
             var repelSettings = getFirstSectionWithMod(s => s.ForceRepel);
             if (repelSettings != null)
                 repelMod.RepulsionStrength.Value = repelSettings.RepelRepulsionStrength;
-            addIfForced(repelMod, s => s.ForceRepel, applyToAllDrawables: true, alwaysUpdateWhenPresent: true);
+            addIfForced(repelMod, s => s.ForceRepel, applyToAllDrawables: true, alwaysUpdateWhenPresent: true, requiresCursor: true);
 
             addIfForced(new OsuModFreezeFrame(), s => s.ForceFreezeFrame, applyToAllDrawables: true, alwaysUpdateWhenPresent: true);
 
@@ -220,10 +226,10 @@ namespace osu.Game.Rulesets.Osu.UI
                 bloomMod.MaxSizeComboCount.Value = bloomSettings.BloomMaxSizeComboCount;
                 bloomMod.MaxCursorSize.Value = bloomSettings.BloomMaxCursorSize;
             }
-            addIfForced(bloomMod, s => s.ForceBloom, applyToAllDrawables: true, alwaysUpdateWhenPresent: true);
+            addIfForced(bloomMod, s => s.ForceBloom, applyToAllDrawables: true, alwaysUpdateWhenPresent: true, requiresCursor: true);
         }
 
-        private void addIfForced(Mod mod, Func<SectionGimmickSettings, bool> enabledPredicate, bool applyToAllDrawables = false, bool alwaysUpdateWhenPresent = false)
+        private void addIfForced(Mod mod, Func<SectionGimmickSettings, bool> enabledPredicate, bool applyToAllDrawables = false, bool alwaysUpdateWhenPresent = false, bool requiresCursor = false)
         {
             if (selectedMods.Any(m => m.GetType() == mod.GetType()))
                 return;
@@ -231,7 +237,7 @@ namespace osu.Game.Rulesets.Osu.UI
             if (!gimmicks.Sections.Any(s => enabledPredicate(s.Settings)))
                 return;
 
-            forcedMods.Add(new ForcedFunMod(mod, enabledPredicate, applyToAllDrawables, alwaysUpdateWhenPresent));
+            forcedMods.Add(new ForcedFunMod(mod, enabledPredicate, applyToAllDrawables, alwaysUpdateWhenPresent, requiresCursor));
         }
 
         public static bool HasAnyForcedFunMods(IBeatmap beatmap)
@@ -259,6 +265,7 @@ namespace osu.Game.Rulesets.Osu.UI
             Mod Mod,
             Func<SectionGimmickSettings, bool> IsEnabled,
             bool ApplyToAllDrawables,
-            bool AlwaysUpdateWhenPresent);
+            bool AlwaysUpdateWhenPresent,
+            bool RequiresCursor);
     }
 }
