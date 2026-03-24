@@ -467,6 +467,22 @@ namespace osu.Game.Beatmaps.Formats
             if (settings.ForceDoubleTime) yield return "ForceDoubleTime=True";
             if (settings.ForceSingleTap) yield return "ForceSingleTap=True";
             if (settings.ForceAlternate) yield return "ForceAlternate=True";
+            if (settings.ForceTransform) yield return "ForceTransform=True";
+            if (settings.ForceWiggle) yield return "ForceWiggle=True";
+            if (settings.ForceSpinIn) yield return "ForceSpinIn=True";
+            if (settings.ForceGrow) yield return "ForceGrow=True";
+            if (settings.ForceDeflate) yield return "ForceDeflate=True";
+            if (settings.ForceBarrelRoll) yield return "ForceBarrelRoll=True";
+            if (settings.ForceApproachDifferent) yield return "ForceApproachDifferent=True";
+            if (settings.ForceMuted) yield return "ForceMuted=True";
+            if (settings.ForceNoScope) yield return "ForceNoScope=True";
+            if (settings.ForceMagnetised) yield return "ForceMagnetised=True";
+            if (settings.ForceRepel) yield return "ForceRepel=True";
+            if (settings.ForceFreezeFrame) yield return "ForceFreezeFrame=True";
+            if (settings.ForceBubbles) yield return "ForceBubbles=True";
+            if (settings.ForceSynesthesia) yield return "ForceSynesthesia=True";
+            if (settings.ForceDepth) yield return "ForceDepth=True";
+            if (settings.ForceBloom) yield return "ForceBloom=True";
 
             if (!string.IsNullOrEmpty(settings.SectionName)) yield return $"SectionName={settings.SectionName}";
             if (settings.DisplayColor != Color4.White)

@@ -172,6 +172,40 @@ namespace osu.Game.Rulesets.Osu.UI
                     details.Add("SG");
                 if (settings.ForceAlternate)
                     details.Add("AL");
+
+                // Fun mods
+                if (settings.ForceTransform)
+                    details.Add("TR");
+                if (settings.ForceWiggle)
+                    details.Add("WG");
+                if (settings.ForceSpinIn)
+                    details.Add("SI");
+                if (settings.ForceGrow)
+                    details.Add("GR");
+                if (settings.ForceDeflate)
+                    details.Add("DF");
+                if (settings.ForceBarrelRoll)
+                    details.Add("BR");
+                if (settings.ForceApproachDifferent)
+                    details.Add("AD");
+                if (settings.ForceMuted)
+                    details.Add("MU");
+                if (settings.ForceNoScope)
+                    details.Add("NS");
+                if (settings.ForceMagnetised)
+                    details.Add("MG");
+                if (settings.ForceRepel)
+                    details.Add("RP");
+                if (settings.ForceFreezeFrame)
+                    details.Add("FF");
+                if (settings.ForceBubbles)
+                    details.Add("BL");
+                if (settings.ForceSynesthesia)
+                    details.Add("SY");
+                if (settings.ForceDepth)
+                    details.Add("DP");
+                if (settings.ForceBloom)
+                    details.Add("BM");
             }
 
             if (details.Count == 0)

@@ -45,6 +45,24 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         public bool ForceSingleTap { get; set; }
         public bool ForceAlternate { get; set; }
 
+        // Fun mods (non-time altering)
+        public bool ForceTransform { get; set; }
+        public bool ForceWiggle { get; set; }
+        public bool ForceSpinIn { get; set; }
+        public bool ForceGrow { get; set; }
+        public bool ForceDeflate { get; set; }
+        public bool ForceBarrelRoll { get; set; }
+        public bool ForceApproachDifferent { get; set; }
+        public bool ForceMuted { get; set; }
+        public bool ForceNoScope { get; set; }
+        public bool ForceMagnetised { get; set; }
+        public bool ForceRepel { get; set; }
+        public bool ForceFreezeFrame { get; set; }
+        public bool ForceBubbles { get; set; }
+        public bool ForceSynesthesia { get; set; }
+        public bool ForceDepth { get; set; }
+        public bool ForceBloom { get; set; }
+
         public string SectionName { get; set; } = string.Empty;
         public Color4 DisplayColor { get; set; } = Color4.White;
     }

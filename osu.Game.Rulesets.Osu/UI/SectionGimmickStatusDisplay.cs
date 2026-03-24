@@ -98,6 +98,40 @@ namespace osu.Game.Rulesets.Osu.UI
             if (settings.ForceAlternate)
                 tags.Add("AL");
 
+            // Fun mods
+            if (settings.ForceTransform)
+                tags.Add("TR");
+            if (settings.ForceWiggle)
+                tags.Add("WG");
+            if (settings.ForceSpinIn)
+                tags.Add("SI");
+            if (settings.ForceGrow)
+                tags.Add("GR");
+            if (settings.ForceDeflate)
+                tags.Add("DF");
+            if (settings.ForceBarrelRoll)
+                tags.Add("BR");
+            if (settings.ForceApproachDifferent)
+                tags.Add("AD");
+            if (settings.ForceMuted)
+                tags.Add("MU");
+            if (settings.ForceNoScope)
+                tags.Add("NS");
+            if (settings.ForceMagnetised)
+                tags.Add("MG");
+            if (settings.ForceRepel)
+                tags.Add("RP");
+            if (settings.ForceFreezeFrame)
+                tags.Add("FF");
+            if (settings.ForceBubbles)
+                tags.Add("BL");
+            if (settings.ForceSynesthesia)
+                tags.Add("SY");
+            if (settings.ForceDepth)
+                tags.Add("DP");
+            if (settings.ForceBloom)
+                tags.Add("BM");
+
             if (tags.Count > 0)
                 return $"{sectionName} ({string.Join(", ", tags)})";
 

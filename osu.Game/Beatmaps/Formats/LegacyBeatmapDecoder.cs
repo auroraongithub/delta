@@ -689,6 +689,22 @@ namespace osu.Game.Beatmaps.Formats
                         case "ForceDoubleTime": section.Settings.ForceDoubleTime = parseBool(value); break;
                         case "ForceSingleTap": section.Settings.ForceSingleTap = parseBool(value); break;
                         case "ForceAlternate": section.Settings.ForceAlternate = parseBool(value); break;
+                        case "ForceTransform": section.Settings.ForceTransform = parseBool(value); break;
+                        case "ForceWiggle": section.Settings.ForceWiggle = parseBool(value); break;
+                        case "ForceSpinIn": section.Settings.ForceSpinIn = parseBool(value); break;
+                        case "ForceGrow": section.Settings.ForceGrow = parseBool(value); break;
+                        case "ForceDeflate": section.Settings.ForceDeflate = parseBool(value); break;
+                        case "ForceBarrelRoll": section.Settings.ForceBarrelRoll = parseBool(value); break;
+                        case "ForceApproachDifferent": section.Settings.ForceApproachDifferent = parseBool(value); break;
+                        case "ForceMuted": section.Settings.ForceMuted = parseBool(value); break;
+                        case "ForceNoScope": section.Settings.ForceNoScope = parseBool(value); break;
+                        case "ForceMagnetised": section.Settings.ForceMagnetised = parseBool(value); break;
+                        case "ForceRepel": section.Settings.ForceRepel = parseBool(value); break;
+                        case "ForceFreezeFrame": section.Settings.ForceFreezeFrame = parseBool(value); break;
+                        case "ForceBubbles": section.Settings.ForceBubbles = parseBool(value); break;
+                        case "ForceSynesthesia": section.Settings.ForceSynesthesia = parseBool(value); break;
+                        case "ForceDepth": section.Settings.ForceDepth = parseBool(value); break;
+                        case "ForceBloom": section.Settings.ForceBloom = parseBool(value); break;
                         case "SectionName": section.Settings.SectionName = value; break;
                         case "DisplayColor":
                             if (uint.TryParse(value, out uint colorArgb))

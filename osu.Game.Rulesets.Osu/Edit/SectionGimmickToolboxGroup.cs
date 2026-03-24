@@ -100,6 +100,25 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox forceSingleTap = null!;
         private FormCheckBox forceAlternate = null!;
 
+        private FormCheckBox showFunMods = null!;
+        private FillFlowContainer funModsPanel = null!;
+        private FormCheckBox forceTransform = null!;
+        private FormCheckBox forceWiggle = null!;
+        private FormCheckBox forceSpinIn = null!;
+        private FormCheckBox forceGrow = null!;
+        private FormCheckBox forceDeflate = null!;
+        private FormCheckBox forceBarrelRoll = null!;
+        private FormCheckBox forceApproachDifferent = null!;
+        private FormCheckBox forceMuted = null!;
+        private FormCheckBox forceNoScope = null!;
+        private FormCheckBox forceMagnetised = null!;
+        private FormCheckBox forceRepel = null!;
+        private FormCheckBox forceFreezeFrame = null!;
+        private FormCheckBox forceBubbles = null!;
+        private FormCheckBox forceSynesthesia = null!;
+        private FormCheckBox forceDepth = null!;
+        private FormCheckBox forceBloom = null!;
+
         private FormEnumDropdown<SectionGimmickApplyScope> applyScopeDropdown = null!;
 
         private OsuSpriteText validationStatus = null!;
@@ -403,6 +422,85 @@ namespace osu.Game.Rulesets.Osu.Edit
                                 Caption = "Force Alternate (AL)",
                             },
 
+                            showFunMods = new FormCheckBox
+                            {
+                                Caption = "Show Fun Mods (collapsible)",
+                            },
+                            funModsPanel = new FillFlowContainer
+                            {
+                                RelativeSizeAxes = Axes.X,
+                                AutoSizeAxes = Axes.Y,
+                                Direction = FillDirection.Vertical,
+                                Spacing = new Vector2(5),
+                                Children = new Drawable[]
+                                {
+                                    forceTransform = new FormCheckBox
+                                    {
+                                        Caption = "Force Transform (TR)",
+                                    },
+                                    forceWiggle = new FormCheckBox
+                                    {
+                                        Caption = "Force Wiggle (WG)",
+                                    },
+                                    forceSpinIn = new FormCheckBox
+                                    {
+                                        Caption = "Force Spin In (SI)",
+                                    },
+                                    forceGrow = new FormCheckBox
+                                    {
+                                        Caption = "Force Grow (GR)",
+                                    },
+                                    forceDeflate = new FormCheckBox
+                                    {
+                                        Caption = "Force Deflate (DF)",
+                                    },
+                                    forceBarrelRoll = new FormCheckBox
+                                    {
+                                        Caption = "Force Barrel Roll (BR)",
+                                    },
+                                    forceApproachDifferent = new FormCheckBox
+                                    {
+                                        Caption = "Force Approach Different (AD)",
+                                    },
+                                    forceMuted = new FormCheckBox
+                                    {
+                                        Caption = "Force Muted (MU)",
+                                    },
+                                    forceNoScope = new FormCheckBox
+                                    {
+                                        Caption = "Force No Scope (NS)",
+                                    },
+                                    forceMagnetised = new FormCheckBox
+                                    {
+                                        Caption = "Force Magnetised (MG)",
+                                    },
+                                    forceRepel = new FormCheckBox
+                                    {
+                                        Caption = "Force Repel (RP)",
+                                    },
+                                    forceFreezeFrame = new FormCheckBox
+                                    {
+                                        Caption = "Force Freeze Frame (FF)",
+                                    },
+                                    forceBubbles = new FormCheckBox
+                                    {
+                                        Caption = "Force Bubbles (BL)",
+                                    },
+                                    forceSynesthesia = new FormCheckBox
+                                    {
+                                        Caption = "Force Synesthesia (SY)",
+                                    },
+                                    forceDepth = new FormCheckBox
+                                    {
+                                        Caption = "Force Depth (DP)",
+                                    },
+                                    forceBloom = new FormCheckBox
+                                    {
+                                        Caption = "Force Bloom (BM)",
+                                    },
+                                }
+                            },
+
                             validationStatus = new OsuSpriteText
                             {
                                 Text = "Validation: OK",
@@ -506,6 +604,25 @@ namespace osu.Game.Rulesets.Osu.Edit
                 if (v.NewValue)
                     s.ForceSingleTap = false;
             }));
+
+            showFunMods.Current.BindValueChanged(v => funModsPanel.FadeTo(v.NewValue ? 1 : 0, 200, Easing.OutQuint));
+
+            forceTransform.Current.BindValueChanged(v => mutateSetting(s => s.ForceTransform = v.NewValue));
+            forceWiggle.Current.BindValueChanged(v => mutateSetting(s => s.ForceWiggle = v.NewValue));
+            forceSpinIn.Current.BindValueChanged(v => mutateSetting(s => s.ForceSpinIn = v.NewValue));
+            forceGrow.Current.BindValueChanged(v => mutateSetting(s => s.ForceGrow = v.NewValue));
+            forceDeflate.Current.BindValueChanged(v => mutateSetting(s => s.ForceDeflate = v.NewValue));
+            forceBarrelRoll.Current.BindValueChanged(v => mutateSetting(s => s.ForceBarrelRoll = v.NewValue));
+            forceApproachDifferent.Current.BindValueChanged(v => mutateSetting(s => s.ForceApproachDifferent = v.NewValue));
+            forceMuted.Current.BindValueChanged(v => mutateSetting(s => s.ForceMuted = v.NewValue));
+            forceNoScope.Current.BindValueChanged(v => mutateSetting(s => s.ForceNoScope = v.NewValue));
+            forceMagnetised.Current.BindValueChanged(v => mutateSetting(s => s.ForceMagnetised = v.NewValue));
+            forceRepel.Current.BindValueChanged(v => mutateSetting(s => s.ForceRepel = v.NewValue));
+            forceFreezeFrame.Current.BindValueChanged(v => mutateSetting(s => s.ForceFreezeFrame = v.NewValue));
+            forceBubbles.Current.BindValueChanged(v => mutateSetting(s => s.ForceBubbles = v.NewValue));
+            forceSynesthesia.Current.BindValueChanged(v => mutateSetting(s => s.ForceSynesthesia = v.NewValue));
+            forceDepth.Current.BindValueChanged(v => mutateSetting(s => s.ForceDepth = v.NewValue));
+            forceBloom.Current.BindValueChanged(v => mutateSetting(s => s.ForceBloom = v.NewValue));
         }
 
         private void mutateSetting(Action<SectionGimmickSettings> settingMutation)
@@ -609,6 +726,33 @@ namespace osu.Game.Rulesets.Osu.Edit
                 forceDoubleTime.Current.Value = settings.ForceDoubleTime;
                 forceSingleTap.Current.Value = settings.ForceSingleTap;
                 forceAlternate.Current.Value = settings.ForceAlternate;
+
+                // Fun mods - determine if any are enabled to auto-show panel
+                bool anyFunMod = settings.ForceTransform || settings.ForceWiggle || settings.ForceSpinIn
+                    || settings.ForceGrow || settings.ForceDeflate || settings.ForceBarrelRoll
+                    || settings.ForceApproachDifferent || settings.ForceMuted || settings.ForceNoScope
+                    || settings.ForceMagnetised || settings.ForceRepel || settings.ForceFreezeFrame
+                    || settings.ForceBubbles || settings.ForceSynesthesia || settings.ForceDepth || settings.ForceBloom;
+                showFunMods.Current.Value = anyFunMod;
+                funModsPanel.AlwaysPresent = true;
+                funModsPanel.FadeTo(anyFunMod ? 1 : 0, 0);
+
+                forceTransform.Current.Value = settings.ForceTransform;
+                forceWiggle.Current.Value = settings.ForceWiggle;
+                forceSpinIn.Current.Value = settings.ForceSpinIn;
+                forceGrow.Current.Value = settings.ForceGrow;
+                forceDeflate.Current.Value = settings.ForceDeflate;
+                forceBarrelRoll.Current.Value = settings.ForceBarrelRoll;
+                forceApproachDifferent.Current.Value = settings.ForceApproachDifferent;
+                forceMuted.Current.Value = settings.ForceMuted;
+                forceNoScope.Current.Value = settings.ForceNoScope;
+                forceMagnetised.Current.Value = settings.ForceMagnetised;
+                forceRepel.Current.Value = settings.ForceRepel;
+                forceFreezeFrame.Current.Value = settings.ForceFreezeFrame;
+                forceBubbles.Current.Value = settings.ForceBubbles;
+                forceSynesthesia.Current.Value = settings.ForceSynesthesia;
+                forceDepth.Current.Value = settings.ForceDepth;
+                forceBloom.Current.Value = settings.ForceBloom;
             }
 
             updatingControls = false;
