@@ -25,8 +25,10 @@ namespace osu.Game.Rulesets.Osu.Edit
     {
         private readonly BindableInt selectedSectionId = new BindableInt(-1);
 
-        [Resolved]
-        private SectionGimmickEditorModel model { get; set; } = null!;
+        [Resolved(canBeNull: true)]
+        private SectionGimmickEditorModel? resolvedModel { get; set; }
+
+        private SectionGimmickEditorModel model = null!;
 
         [Resolved]
         private EditorClock clock { get; set; } = null!;
@@ -110,6 +112,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         [BackgroundDependencyLoader]
         private void load()
         {
+            model = resolvedModel ?? new SectionGimmickEditorModel(editorBeatmap);
             selectedSectionId.BindTo(model.SelectedSectionId);
 
             Child = new FillFlowContainer

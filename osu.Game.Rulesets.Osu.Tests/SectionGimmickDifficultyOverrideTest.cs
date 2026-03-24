@@ -548,6 +548,106 @@ namespace osu.Game.Rulesets.Osu.Tests
         }
 
         [Test]
+        public void TestHitObjectDifficultyOverrideAppliesWithoutSections()
+        {
+            var target = new HitCircle { StartTime = 500 };
+            var other = new HitCircle { StartTime = 500, ComboOffset = 1, NewCombo = true };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(target);
+            beatmap.HitObjects.Add(other);
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+
+            target.UpdateComboInformation(null);
+            other.UpdateComboInformation(target);
+
+            beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
+            {
+                StartTime = target.StartTime,
+                ComboIndexWithOffsets = target.ComboIndexWithOffsets,
+                Settings = new HitObjectGimmickSettings
+                {
+                    EnableDifficultyOverrides = true,
+                    SectionApproachRate = 10,
+                    SectionOverallDifficulty = 9,
+                    SectionCircleSize = 7,
+                },
+            });
+
+            processor.PostProcess();
+
+            Assert.That(target.TimePreempt, Is.EqualTo(450).Within(0.0001));
+            Assert.That(other.TimePreempt, Is.EqualTo(1200).Within(0.0001));
+
+            var od9 = new OsuHitWindows();
+            od9.SetDifficulty(9);
+
+            var baseOd = new OsuHitWindows();
+            baseOd.SetDifficulty(beatmap.Difficulty.OverallDifficulty);
+
+            Assert.That(target.HitWindows.WindowFor(HitResult.Great), Is.EqualTo(od9.WindowFor(HitResult.Great)).Within(0.0001));
+            Assert.That(other.HitWindows.WindowFor(HitResult.Great), Is.EqualTo(baseOd.WindowFor(HitResult.Great)).Within(0.0001));
+            Assert.That(target.Scale, Is.LessThan(other.Scale));
+        }
+
+        [Test]
+        public void TestHitObjectDifficultyOverrideAppliesOnTopOfSectionOverrides()
+        {
+            var target = new HitCircle { StartTime = 500 };
+            var other = new HitCircle { StartTime = 700, ComboOffset = 1, NewCombo = true };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(target);
+            beatmap.HitObjects.Add(other);
+
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableDifficultyOverrides = true,
+                    SectionApproachRate = 8,
+                    SectionOverallDifficulty = 8,
+                    SectionCircleSize = 5,
+                }
+            });
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+
+            target.UpdateComboInformation(null);
+            other.UpdateComboInformation(target);
+
+            beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
+            {
+                StartTime = target.StartTime,
+                ComboIndexWithOffsets = target.ComboIndexWithOffsets,
+                Settings = new HitObjectGimmickSettings
+                {
+                    EnableDifficultyOverrides = true,
+                    SectionApproachRate = 10,
+                },
+            });
+
+            processor.PostProcess();
+
+            // target should use object override AR10
+            Assert.That(target.TimePreempt, Is.EqualTo(450).Within(0.0001));
+            // other should use section override AR8
+            Assert.That(other.TimePreempt, Is.EqualTo(750).Within(0.0001));
+        }
+
+        [Test]
         public void TestForceFlashlightPresenceDetection()
         {
             var beatmap = new OsuBeatmap();

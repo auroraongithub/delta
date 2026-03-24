@@ -281,9 +281,6 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
 
         private static void applySectionDifficultyOverrides(IBeatmap beatmap)
         {
-            if (beatmap.SectionGimmicks.Sections.Count == 0)
-                return;
-
             var orderedSections = beatmap.SectionGimmicks.Sections.OrderBy(s => s.StartTime).ToList();
             var baseDifficulty = beatmap.Difficulty;
 

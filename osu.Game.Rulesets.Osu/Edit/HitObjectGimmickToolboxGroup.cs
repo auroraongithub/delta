@@ -170,8 +170,9 @@ namespace osu.Game.Rulesets.Osu.Edit
                 : "No object selected";
             selectionStatus.Colour = hasSelection ? Color4.White : Color4.Gray;
 
-            bool enabled = hasSelection;
-            setEnabledState(enabled,
+            // Values may be updated while there is no selection (resetting to defaults).
+            // Ensure controls are writable during this update pass, then apply final enabled state below.
+            setEnabledState(true,
                 enableHpGimmick,
                 hp300, hp100, hp50, hpMiss,
                 enableNoMiss,
@@ -221,12 +222,34 @@ namespace osu.Game.Rulesets.Osu.Edit
             difficultyOverrideFields.FadeTo(enableDifficultyOverrides.Current.Value ? 1 : 0, 200);
             difficultyOverrideFields.AlwaysPresent = enableDifficultyOverrides.Current.Value;
 
+            if (IsLoaded)
+            {
+                bool enabled = hasSelection;
+                setEnabledState(enabled,
+                    enableHpGimmick,
+                    hp300, hp100, hp50, hpMiss,
+                    enableNoMiss,
+                    enableCountLimits, max300, max100, max50, maxMiss,
+                    enableGreatOffsetPenalty, greatOffsetThreshold, greatOffsetPenaltyHp,
+                    enableDifficultyOverrides, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
+                    forceHidden, forceHardRock, forceFlashlight, forceNoApproachCircle);
+            }
+
             updatingControls = false;
+        }
+
+        protected override void LoadComplete()
+        {
+            base.LoadComplete();
+            updateFromSelection();
         }
 
         private void setBool(bool value, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, bool> setter)
         {
             if (updatingControls)
+                return;
+
+            if (!model.HasSelection)
                 return;
 
             model.SetSelectionBoolSetting(setter, value);
@@ -236,6 +259,9 @@ namespace osu.Game.Rulesets.Osu.Edit
         private void setFloat(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter)
         {
             if (updatingControls)
+                return;
+
+            if (!model.HasSelection)
                 return;
 
             if (!float.TryParse(source.Current.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
@@ -248,6 +274,9 @@ namespace osu.Game.Rulesets.Osu.Edit
         private void setInt(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, int> setter)
         {
             if (updatingControls)
+                return;
+
+            if (!model.HasSelection)
                 return;
 
             if (!int.TryParse(source.Current.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
@@ -279,7 +308,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                         break;
 
                     case FormTextBox t:
-                        t.Current.Disabled = !enabled;
+                        t.ReadOnly = !enabled;
                         break;
 
                     case FormButton b:
