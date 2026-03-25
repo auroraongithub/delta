@@ -105,7 +105,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox enableGradualDifficultyChange = null!;
         private FormNumberBox gradualDifficultyChangeEndTime = null!;
         private FormCheckBox keepDifficultyOverridesAfterSection = null!;
-        private FormButton inheritFromPreviousButton = null!;
+        private RoundedButton inheritFromPreviousButton = null!;
         private FormNumberBox sectionCircleSize = null!;
         private FormNumberBox sectionApproachRate = null!;
         private FormNumberBox sectionOverallDifficulty = null!;
@@ -143,6 +143,11 @@ namespace osu.Game.Rulesets.Osu.Edit
                 Direction = FillDirection.Vertical,
                 Children = new Drawable[]
                 {
+                    sectionDropdown = new SectionSelectionDropdown
+                    {
+                        RelativeSizeAxes = Axes.X,
+                        Caption = "Sections",
+                    },
                     sectionActionButtons = new GridContainer
                     {
                         RelativeSizeAxes = Axes.X,
@@ -167,11 +172,6 @@ namespace osu.Game.Rulesets.Osu.Edit
                             },
                             }
                         }
-                    },
-                    sectionDropdown = new SectionSelectionDropdown
-                    {
-                        RelativeSizeAxes = Axes.X,
-                        Caption = "Sections",
                     },
                     selectedSectionFlow = new FillFlowContainer
                     {
@@ -518,10 +518,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                                     {
                                         Caption = "Keep overrides after section",
                                     },
-                                    inheritFromPreviousButton = new FormButton
+                                    inheritFromPreviousButton = new RoundedButton
                                     {
-                                        Caption = string.Empty,
-                                        ButtonText = "Inherit previous",
+                                        Text = "Inherit from previous",
+                                        RelativeSizeAxes = Axes.X,
                                         Action = inheritDifficultyFromPrevious,
                                     },
                                 }
