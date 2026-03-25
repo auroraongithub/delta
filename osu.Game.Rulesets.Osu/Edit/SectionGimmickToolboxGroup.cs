@@ -42,9 +42,11 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private FormButton addSectionButton = null!;
         private FormButton removeSectionButton = null!;
+        private CompositeDrawable sectionActionButtons = null!;
         private FormButton copySettingsButton = null!;
         private FormButton pasteSettingsButton = null!;
         private FormButton applyScopeButton = null!;
+        private CompositeDrawable settingsActionButtons = null!;
 
         private SectionSelectionDropdown sectionDropdown = null!;
 
@@ -72,6 +74,8 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox hp50AffectsSliderEndsAndTicks = null!;
         private FormNumberBox hpMiss = null!;
         private FormCheckBox hpMissAffectsSliderEndAndTickMisses = null!;
+        private FormCheckBox showHpSliderRouting = null!;
+        private FillFlowContainer hpSliderRoutingFields = null!;
 
         private FormCheckBox enableNoMiss = null!;
 
@@ -85,6 +89,8 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox max50sAffectsSliderEndsAndTicks = null!;
         private FormNumberBox maxMisses = null!;
         private FormCheckBox maxMissesAffectsSliderEndAndTickMisses = null!;
+        private FormCheckBox showCountSliderRouting = null!;
+        private FillFlowContainer countSliderRoutingFields = null!;
 
         private FormCheckBox enableNoMissedSliderEnd = null!;
 
@@ -108,6 +114,8 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox forceHardRock = null!;
         private FormCheckBox forceFlashlight = null!;
         private FormCheckBox forceDoubleTime = null!;
+        private FormCheckBox showForceMods = null!;
+        private FillFlowContainer forceModsFields = null!;
 
         private FormEnumDropdown<SectionGimmickApplyScope> applyScopeDropdown = null!;
 
@@ -134,17 +142,30 @@ namespace osu.Game.Rulesets.Osu.Edit
                 Direction = FillDirection.Vertical,
                 Children = new Drawable[]
                 {
-                    addSectionButton = new FormButton
+                    sectionActionButtons = new GridContainer
                     {
-                        Caption = "Sections",
-                        ButtonText = "Add Section",
-                        Action = () => model.AddSection(clock.CurrentTime),
-                    },
-                    removeSectionButton = new FormButton
-                    {
-                        Caption = "Sections",
-                        ButtonText = "Remove Selected",
-                        Action = () => model.RemoveSelectedSection(),
+                        RelativeSizeAxes = Axes.X,
+                        AutoSizeAxes = Axes.Y,
+                        RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                        ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                        Content = new[]
+                        {
+                            new Drawable[]
+                            {
+                                addSectionButton = new FormButton
+                                {
+                                    Caption = "Sections",
+                                    ButtonText = "Add",
+                                    Action = () => model.AddSection(clock.CurrentTime),
+                                },
+                                removeSectionButton = new FormButton
+                                {
+                                    Caption = "Sections",
+                                    ButtonText = "Remove",
+                                    Action = () => model.RemoveSelectedSection(),
+                                },
+                            }
+                        }
                     },
                     sectionDropdown = new SectionSelectionDropdown
                     {
@@ -161,46 +182,59 @@ namespace osu.Game.Rulesets.Osu.Edit
                         {
                             sectionNameBox = new FormTextBox
                             {
-                                Caption = "Section name",
+                                Caption = "Name",
                                 PlaceholderText = "e.g., Kiai time",
                                 TabbableContentContainer = this,
                             },
                             startTimeBox = new FormNumberBox(allowDecimals: true)
                             {
-                                Caption = "Section start (ms)",
+                                Caption = "Start (ms)",
                                 Current = { Value = "0" },
                                 TabbableContentContainer = this,
                             },
                             setStartHereButton = new FormButton
                             {
-                                Caption = "Section start (ms)",
-                                ButtonText = "Set Start Here",
+                                Caption = "Start (ms)",
+                                ButtonText = "Use current",
                                 Action = () => model.SetSelectedStartTime(clock.CurrentTime),
                             },
                             endTimeBox = new FormNumberBox(allowDecimals: true)
                             {
-                                Caption = "Section end (ms, -1 map end)",
+                                Caption = "End (ms, -1 map end)",
                                 Current = { Value = "-1" },
                                 TabbableContentContainer = this,
                             },
                             setEndHereButton = new FormButton
                             {
-                                Caption = "Section end (ms, -1 map end)",
-                                ButtonText = "Set End Here",
+                                Caption = "End (ms, -1 map end)",
+                                ButtonText = "Use current",
                                 Action = () => model.SetSelectedEndTime(clock.CurrentTime),
                             },
 
-                            copySettingsButton = new FormButton
+                            settingsActionButtons = new GridContainer
                             {
-                                Caption = "Settings",
-                                ButtonText = "Copy Gimmick Settings",
-                                Action = () => model.CopySelectedSettings(),
-                            },
-                            pasteSettingsButton = new FormButton
-                            {
-                                Caption = "Settings",
-                                ButtonText = "Paste Gimmick Settings",
-                                Action = () => model.PasteSettingsTo(Array.Empty<int>()),
+                                RelativeSizeAxes = Axes.X,
+                                AutoSizeAxes = Axes.Y,
+                                RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                                ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                                Content = new[]
+                                {
+                                    new Drawable[]
+                                    {
+                                        copySettingsButton = new FormButton
+                                        {
+                                            Caption = "Settings",
+                                            ButtonText = "Copy",
+                                            Action = () => model.CopySelectedSettings(),
+                                        },
+                                        pasteSettingsButton = new FormButton
+                                        {
+                                            Caption = "Settings",
+                                            ButtonText = "Paste",
+                                            Action = () => model.PasteSettingsTo(Array.Empty<int>()),
+                                        },
+                                    }
+                                }
                             },
 
                             applyScopeDropdown = new FormEnumDropdown<SectionGimmickApplyScope>
@@ -211,13 +245,13 @@ namespace osu.Game.Rulesets.Osu.Edit
                             applyScopeButton = new FormButton
                             {
                                 Caption = "Apply scope",
-                                ButtonText = "Apply Current Settings",
+                                ButtonText = "Apply",
                                 Action = applyCurrentSettingsByScope,
                             },
 
                             enableHpGimmick = new FormCheckBox
                             {
-                                Caption = "HP Adjustments",
+                                Caption = "HP",
                             },
                             hpGroupFields = new FillFlowContainer
                             {
@@ -229,20 +263,20 @@ namespace osu.Game.Rulesets.Osu.Edit
                                 {
                                     noDrain = new FormCheckBox
                                     {
-                                        Caption = "NoDrain",
+                                        Caption = "No drain",
                                     },
                                     reverseHp = new FormCheckBox
                                     {
-                                        Caption = "ReverseHP",
+                                        Caption = "Reverse HP",
                                     },
                                     hpStart = new FormNumberBox(allowDecimals: true)
                                     {
-                                        Caption = "HPStart (optional 0-1)",
+                                        Caption = "HP start (opt. 0-1)",
                                         TabbableContentContainer = this,
                                     },
                                     hpCap = new FormNumberBox(allowDecimals: true)
                                     {
-                                        Caption = "HPCap (optional 0-1)",
+                                        Caption = "HP cap (opt. 0-1)",
                                         TabbableContentContainer = this,
                                     },
                                     hp300 = new FormNumberBox(allowDecimals: true)
@@ -250,36 +284,50 @@ namespace osu.Game.Rulesets.Osu.Edit
                                         Caption = "HP300",
                                         TabbableContentContainer = this,
                                     },
-                                    hp300AffectsSliderEndsAndTicks = new FormCheckBox
-                                    {
-                                        Caption = "HP300 applies to slider end/reverse/tick hits",
-                                    },
                                     hp100 = new FormNumberBox(allowDecimals: true)
                                     {
                                         Caption = "HP100",
                                         TabbableContentContainer = this,
-                                    },
-                                    hp100AffectsSliderEndsAndTicks = new FormCheckBox
-                                    {
-                                        Caption = "HP100 applies to slider end/reverse/tick hits",
                                     },
                                     hp50 = new FormNumberBox(allowDecimals: true)
                                     {
                                         Caption = "HP50",
                                         TabbableContentContainer = this,
                                     },
-                                    hp50AffectsSliderEndsAndTicks = new FormCheckBox
-                                    {
-                                        Caption = "HP50 applies to slider end/reverse/tick hits",
-                                    },
                                     hpMiss = new FormNumberBox(allowDecimals: true)
                                     {
                                         Caption = "HPMiss",
                                         TabbableContentContainer = this,
                                     },
-                                    hpMissAffectsSliderEndAndTickMisses = new FormCheckBox
+                                    showHpSliderRouting = new FormCheckBox
                                     {
-                                        Caption = "HPMiss applies to slider end/reverse/tick misses",
+                                        Caption = "Show slider HP routing",
+                                    },
+                                    hpSliderRoutingFields = new FillFlowContainer
+                                    {
+                                        RelativeSizeAxes = Axes.X,
+                                        AutoSizeAxes = Axes.Y,
+                                        Direction = FillDirection.Vertical,
+                                        Spacing = new Vector2(5),
+                                        Children = new Drawable[]
+                                        {
+                                            hp300AffectsSliderEndsAndTicks = new FormCheckBox
+                                            {
+                                                Caption = "Use HP300 for slider hit judgements",
+                                            },
+                                            hp100AffectsSliderEndsAndTicks = new FormCheckBox
+                                            {
+                                                Caption = "Use HP100 for slider hit judgements",
+                                            },
+                                            hp50AffectsSliderEndsAndTicks = new FormCheckBox
+                                            {
+                                                Caption = "Use HP50 for slider hit judgements",
+                                            },
+                                            hpMissAffectsSliderEndAndTickMisses = new FormCheckBox
+                                            {
+                                                Caption = "Use HPMiss for slider miss judgements",
+                                            },
+                                        }
                                     },
                                 }
                             },
@@ -291,7 +339,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
                             enableCountLimits = new FormCheckBox
                             {
-                                Caption = "Count Limits",
+                                Caption = "Count limits",
                             },
                             countLimitFields = new FillFlowContainer
                             {
@@ -306,48 +354,62 @@ namespace osu.Game.Rulesets.Osu.Edit
                                         Caption = "Max300s (-1 unlimited)",
                                         TabbableContentContainer = this,
                                     },
-                                    max300sAffectsSliderEndsAndTicks = new FormCheckBox
-                                    {
-                                        Caption = "Max300s counts slider end/reverse/tick hits",
-                                    },
                                     max100s = new FormNumberBox
                                     {
                                         Caption = "Max100s (-1 unlimited)",
                                         TabbableContentContainer = this,
-                                    },
-                                    max100sAffectsSliderEndsAndTicks = new FormCheckBox
-                                    {
-                                        Caption = "Max100s counts slider end/reverse/tick hits",
                                     },
                                     max50s = new FormNumberBox
                                     {
                                         Caption = "Max50s (-1 unlimited)",
                                         TabbableContentContainer = this,
                                     },
-                                    max50sAffectsSliderEndsAndTicks = new FormCheckBox
-                                    {
-                                        Caption = "Max50s counts slider end/reverse/tick hits",
-                                    },
                                     maxMisses = new FormNumberBox
                                     {
                                         Caption = "MaxMisses (-1 unlimited)",
                                         TabbableContentContainer = this,
                                     },
-                                    maxMissesAffectsSliderEndAndTickMisses = new FormCheckBox
+                                    showCountSliderRouting = new FormCheckBox
                                     {
-                                        Caption = "MaxMisses counts slider end/reverse/tick misses",
+                                        Caption = "Show slider count routing",
+                                    },
+                                    countSliderRoutingFields = new FillFlowContainer
+                                    {
+                                        RelativeSizeAxes = Axes.X,
+                                        AutoSizeAxes = Axes.Y,
+                                        Direction = FillDirection.Vertical,
+                                        Spacing = new Vector2(5),
+                                        Children = new Drawable[]
+                                        {
+                                            max300sAffectsSliderEndsAndTicks = new FormCheckBox
+                                            {
+                                                Caption = "Count slider hits as 300",
+                                            },
+                                            max100sAffectsSliderEndsAndTicks = new FormCheckBox
+                                            {
+                                                Caption = "Count slider hits as 100",
+                                            },
+                                            max50sAffectsSliderEndsAndTicks = new FormCheckBox
+                                            {
+                                                Caption = "Count slider hits as 50",
+                                            },
+                                            maxMissesAffectsSliderEndAndTickMisses = new FormCheckBox
+                                            {
+                                                Caption = "Count slider misses as Miss",
+                                            },
+                                        }
                                     },
                                 }
                             },
 
                             enableNoMissedSliderEnd = new FormCheckBox
                             {
-                                Caption = "No Missed Slider End",
+                                Caption = "No missed slider ends",
                             },
 
                             enableGreatOffsetPenalty = new FormCheckBox
                             {
-                                Caption = "Great Offset Penalty",
+                                Caption = "Great offset penalty",
                             },
                             greatOffsetFields = new FillFlowContainer
                             {
@@ -372,7 +434,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
                             enableDifficultyOverrides = new FormCheckBox
                             {
-                                Caption = "Difficulty Overrides (CS/AR/OD)",
+                                Caption = "Difficulty overrides (CS/AR/OD)",
                             },
                             difficultyOverrideFields = new FillFlowContainer
                             {
@@ -384,17 +446,17 @@ namespace osu.Game.Rulesets.Osu.Edit
                                 {
                                     sectionCircleSize = new FormNumberBox(allowDecimals: true)
                                     {
-                                        Caption = "SectionCircleSize (0-11)",
+                                        Caption = "CS (0-11)",
                                         TabbableContentContainer = this,
                                     },
                                     sectionApproachRate = new FormNumberBox(allowDecimals: true)
                                     {
-                                        Caption = "SectionApproachRate (<= 11)",
+                                        Caption = "AR (<= 11)",
                                         TabbableContentContainer = this,
                                     },
                                     sectionOverallDifficulty = new FormNumberBox(allowDecimals: true)
                                     {
-                                        Caption = "SectionOverallDifficulty (0-11)",
+                                        Caption = "OD (0-11)",
                                         TabbableContentContainer = this,
                                     },
                                     enableGradualDifficultyChange = new FormCheckBox
@@ -409,7 +471,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                                     setGradualFinishTimeButton = new FormButton
                                     {
                                         Caption = "Gradual finish time (ms)",
-                                        ButtonText = "Set Finish Here",
+                                        ButtonText = "Use current",
                                         Action = () => mutateSetting(s => s.GradualDifficultyChangeEndTimeMs = (float)clock.CurrentTime),
                                     },
                                     keepDifficultyOverridesAfterSection = new FormCheckBox
@@ -419,31 +481,45 @@ namespace osu.Game.Rulesets.Osu.Edit
                                     inheritFromPreviousButton = new FormButton
                                     {
                                         Caption = "Difficulty Overrides",
-                                        ButtonText = "Inherit from Previous",
+                                        ButtonText = "Inherit previous",
                                         Action = inheritDifficultyFromPrevious,
                                     },
                                 }
                             },
 
-                            forceHidden = new FormCheckBox
+                            showForceMods = new FormCheckBox
                             {
-                                Caption = "Force Hidden (HD)",
+                                Caption = "Show forced mods",
                             },
-                            forceNoApproachCircle = new FormCheckBox
+                            forceModsFields = new FillFlowContainer
                             {
-                                Caption = "Force No Approach Circle",
-                            },
-                            forceHardRock = new FormCheckBox
-                            {
-                                Caption = "Force Hard Rock (HR)",
-                            },
-                            forceFlashlight = new FormCheckBox
-                            {
-                                Caption = "Force Flashlight (FL)",
-                            },
-                            forceDoubleTime = new FormCheckBox
-                            {
-                                Caption = "Force Double Time (DT)",
+                                RelativeSizeAxes = Axes.X,
+                                AutoSizeAxes = Axes.Y,
+                                Direction = FillDirection.Vertical,
+                                Spacing = new Vector2(5),
+                                Children = new Drawable[]
+                                {
+                                    forceHidden = new FormCheckBox
+                                    {
+                                        Caption = "Force HD",
+                                    },
+                                    forceNoApproachCircle = new FormCheckBox
+                                    {
+                                        Caption = "Force no approach circle",
+                                    },
+                                    forceHardRock = new FormCheckBox
+                                    {
+                                        Caption = "Force HR",
+                                    },
+                                    forceFlashlight = new FormCheckBox
+                                    {
+                                        Caption = "Force FL",
+                                    },
+                                    forceDoubleTime = new FormCheckBox
+                                    {
+                                        Caption = "Force DT",
+                                    },
+                                }
                             },
 
                             validationStatus = new OsuSpriteText
@@ -532,6 +608,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             hp100AffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.HP100AffectsSliderEndsAndTicks = v.NewValue));
             hp50AffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.HP50AffectsSliderEndsAndTicks = v.NewValue));
             hpMissAffectsSliderEndAndTickMisses.Current.BindValueChanged(v => mutateSetting(s => s.HPMissAffectsSliderEndAndTickMisses = v.NewValue));
+            showHpSliderRouting.Current.BindValueChanged(_ => updateGroupVisibility());
 
             enableNoMiss.Current.BindValueChanged(v => mutateSetting(s => s.EnableNoMiss = v.NewValue));
 
@@ -544,6 +621,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             max100sAffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.Max100sAffectsSliderEndsAndTicks = v.NewValue));
             max50sAffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.Max50sAffectsSliderEndsAndTicks = v.NewValue));
             maxMissesAffectsSliderEndAndTickMisses.Current.BindValueChanged(v => mutateSetting(s => s.MaxMissesAffectsSliderEndAndTickMisses = v.NewValue));
+            showCountSliderRouting.Current.BindValueChanged(_ => updateGroupVisibility());
 
             enableNoMissedSliderEnd.Current.BindValueChanged(v => mutateSetting(s => s.EnableNoMissedSliderEnd = v.NewValue));
 
@@ -564,6 +642,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             forceHardRock.Current.BindValueChanged(v => mutateSetting(s => s.ForceHardRock = v.NewValue));
             forceFlashlight.Current.BindValueChanged(v => mutateSetting(s => s.ForceFlashlight = v.NewValue));
             forceDoubleTime.Current.BindValueChanged(v => mutateSetting(s => s.ForceDoubleTime = v.NewValue));
+            showForceMods.Current.BindValueChanged(_ => updateGroupVisibility());
         }
 
         private void mutateSetting(Action<SectionGimmickSettings> settingMutation)
@@ -647,6 +726,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                 hp100AffectsSliderEndsAndTicks.Current.Value = settings.HP100AffectsSliderEndsAndTicks;
                 hp50AffectsSliderEndsAndTicks.Current.Value = settings.HP50AffectsSliderEndsAndTicks;
                 hpMissAffectsSliderEndAndTickMisses.Current.Value = settings.HPMissAffectsSliderEndAndTickMisses;
+                showHpSliderRouting.Current.Value = settings.HP300AffectsSliderEndsAndTicks
+                                                    || settings.HP100AffectsSliderEndsAndTicks
+                                                    || settings.HP50AffectsSliderEndsAndTicks
+                                                    || settings.HPMissAffectsSliderEndAndTickMisses;
 
                 enableNoMiss.Current.Value = settings.EnableNoMiss;
 
@@ -659,6 +742,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                 max100sAffectsSliderEndsAndTicks.Current.Value = settings.Max100sAffectsSliderEndsAndTicks;
                 max50sAffectsSliderEndsAndTicks.Current.Value = settings.Max50sAffectsSliderEndsAndTicks;
                 maxMissesAffectsSliderEndAndTickMisses.Current.Value = settings.MaxMissesAffectsSliderEndAndTickMisses;
+                showCountSliderRouting.Current.Value = settings.Max300sAffectsSliderEndsAndTicks
+                                                       || settings.Max100sAffectsSliderEndsAndTicks
+                                                       || settings.Max50sAffectsSliderEndsAndTicks
+                                                       || settings.MaxMissesAffectsSliderEndAndTickMisses;
 
                 enableNoMissedSliderEnd.Current.Value = settings.EnableNoMissedSliderEnd;
 
@@ -679,6 +766,11 @@ namespace osu.Game.Rulesets.Osu.Edit
                 forceHardRock.Current.Value = settings.ForceHardRock;
                 forceFlashlight.Current.Value = settings.ForceFlashlight;
                 forceDoubleTime.Current.Value = settings.ForceDoubleTime;
+                showForceMods.Current.Value = settings.ForceHidden
+                                               || settings.ForceNoApproachCircle
+                                               || settings.ForceHardRock
+                                               || settings.ForceFlashlight
+                                               || settings.ForceDoubleTime;
             }
 
             updatingControls = false;
@@ -692,8 +784,14 @@ namespace osu.Game.Rulesets.Osu.Edit
             hpGroupFields.FadeTo(enableHpGimmick.Current.Value ? 1 : 0, 200, Easing.OutQuint);
             hpGroupFields.AlwaysPresent = enableHpGimmick.Current.Value;
 
+            hpSliderRoutingFields.FadeTo(enableHpGimmick.Current.Value && showHpSliderRouting.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            hpSliderRoutingFields.AlwaysPresent = enableHpGimmick.Current.Value && showHpSliderRouting.Current.Value;
+
             countLimitFields.FadeTo(enableCountLimits.Current.Value ? 1 : 0, 200, Easing.OutQuint);
             countLimitFields.AlwaysPresent = enableCountLimits.Current.Value;
+
+            countSliderRoutingFields.FadeTo(enableCountLimits.Current.Value && showCountSliderRouting.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            countSliderRoutingFields.AlwaysPresent = enableCountLimits.Current.Value && showCountSliderRouting.Current.Value;
 
             greatOffsetFields.FadeTo(enableGreatOffsetPenalty.Current.Value ? 1 : 0, 200, Easing.OutQuint);
             greatOffsetFields.AlwaysPresent = enableGreatOffsetPenalty.Current.Value;
@@ -706,6 +804,9 @@ namespace osu.Game.Rulesets.Osu.Edit
 
             setGradualFinishTimeButton.FadeTo(enableGradualDifficultyChange.Current.Value ? 1 : 0, 200, Easing.OutQuint);
             setGradualFinishTimeButton.AlwaysPresent = enableGradualDifficultyChange.Current.Value;
+
+            forceModsFields.FadeTo(showForceMods.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            forceModsFields.AlwaysPresent = showForceMods.Current.Value;
         }
 
         private void updateValidationState()
