@@ -288,6 +288,10 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
             // This allows sections to inherit from previous sections when "keep overrides after section" is enabled
             var runningDifficulty = baseDifficulty.Clone();
 
+            // For gradual changes, interpolation should always start from the section-entry baseline
+            // (including inherited running difficulty from previous sections), not a moving per-object baseline.
+            var sectionGradualBaselines = new Dictionary<int, BeatmapDifficulty>();
+
             var objectSettingsLookup = createObjectSettingsLookup(beatmap.HitObjectGimmicks);
 
             foreach (var hitObject in beatmap.HitObjects.OfType<OsuHitObject>())
@@ -298,9 +302,14 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
 
                 if (section?.Settings.EnableDifficultyOverrides == true)
                 {
-                    // Use running difficulty as the starting baseline for gradual shifts
-                    // This allows sections to inherit from previous sections
-                    applyDifficultyOverridesForTime(section, hitObject.StartTime, difficulty, runningDifficulty);
+                    if (!sectionGradualBaselines.TryGetValue(section.Id, out var sectionBaseline))
+                    {
+                        sectionBaseline = runningDifficulty.Clone();
+                        sectionGradualBaselines[section.Id] = sectionBaseline;
+                    }
+
+                    // Use a fixed baseline captured at section entry for smoother, truly gradual shifts.
+                    applyDifficultyOverridesForTime(section, hitObject.StartTime, difficulty, sectionBaseline);
                 }
                 else
                 {
@@ -405,16 +414,19 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
             }
 
             if (!float.IsNaN(settings.SectionCircleSize))
-                targetDifficulty.CircleSize = interpolate(baseDifficulty.CircleSize, settings.SectionCircleSize, progress);
+                targetDifficulty.CircleSize = interpolate(baseDifficulty.CircleSize, settings.SectionCircleSize, progress, settings.EnableGradualDifficultyChange && allowGradual);
 
             if (!float.IsNaN(settings.SectionApproachRate))
-                targetDifficulty.ApproachRate = interpolate(baseDifficulty.ApproachRate, settings.SectionApproachRate, progress);
+                targetDifficulty.ApproachRate = interpolate(baseDifficulty.ApproachRate, settings.SectionApproachRate, progress, false);
 
             if (!float.IsNaN(settings.SectionOverallDifficulty))
-                targetDifficulty.OverallDifficulty = interpolate(baseDifficulty.OverallDifficulty, settings.SectionOverallDifficulty, progress);
+                targetDifficulty.OverallDifficulty = interpolate(baseDifficulty.OverallDifficulty, settings.SectionOverallDifficulty, progress, false);
 
-            static float interpolate(float start, float end, double progress)
-                => (float)(start + (end - start) * progress);
+            static float interpolate(float start, float end, double progress, bool quantizeToOneDecimal)
+            {
+                float value = (float)(start + (end - start) * progress);
+                return quantizeToOneDecimal ? MathF.Round(value, 1, MidpointRounding.AwayFromZero) : value;
+            }
         }
 
         internal static void ApplyStacking(IBeatmap beatmap)
