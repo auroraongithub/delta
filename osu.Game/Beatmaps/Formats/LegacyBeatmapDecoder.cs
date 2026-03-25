@@ -681,6 +681,7 @@ namespace osu.Game.Beatmaps.Formats
                         case "GreatOffsetThresholdMs": section.Settings.GreatOffsetThresholdMs = Parsing.ParseFloat(value); break;
                         case "GreatOffsetPenaltyHP": section.Settings.GreatOffsetPenaltyHP = Parsing.ParseFloat(value); break;
                         case "EnableDifficultyOverrides": section.Settings.EnableDifficultyOverrides = parseBool(value); break;
+                        case "DifficultyOverrideStartWithBeatmapValues": section.Settings.DifficultyOverrideStartWithBeatmapValues = parseBool(value); break;
                         case "EnableGradualDifficultyChange": section.Settings.EnableGradualDifficultyChange = parseBool(value); break;
                         case "GradualDifficultyChangeEndTimeMs": section.Settings.GradualDifficultyChangeEndTimeMs = Parsing.ParseFloat(value); break;
                         case "KeepDifficultyOverridesAfterSection": section.Settings.KeepDifficultyOverridesAfterSection = parseBool(value); break;

@@ -258,10 +258,6 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
             var orderedSections = beatmap.SectionGimmicks.Sections.OrderBy(s => s.StartTime).ToList();
             var baseDifficulty = beatmap.Difficulty;
 
-            // Track the current running difficulty values across sections
-            // This allows sections to inherit from previous sections when "keep overrides after section" is enabled
-            var runningDifficulty = baseDifficulty.Clone();
-
             // For gradual changes, interpolation should always start from the section-entry baseline
             // (including inherited running difficulty from previous sections), not a moving per-object baseline.
             var sectionGradualBaselines = new Dictionary<int, BeatmapDifficulty>();
@@ -275,7 +271,10 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 {
                     if (!sectionGradualBaselines.TryGetValue(section.Id, out var sectionBaseline))
                     {
-                        sectionBaseline = runningDifficulty.Clone();
+                        sectionBaseline = section.Settings.DifficultyOverrideStartWithBeatmapValues
+                            ? baseDifficulty.Clone()
+                            : computeSectionInheritedBaseline(orderedSections, section, baseDifficulty);
+
                         sectionGradualBaselines[section.Id] = sectionBaseline;
                     }
 
@@ -304,13 +303,6 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                     }
                 }
 
-                // Preserve non-force-mod running state.
-                // Force mods (like HR multipliers) should affect only the current object,
-                // not become the baseline for subsequent objects.
-                float runningCircleSize = difficulty.CircleSize;
-                float runningApproachRate = difficulty.ApproachRate;
-                float runningOverallDifficulty = difficulty.OverallDifficulty;
-
                 // Apply Hard Rock multipliers if ForceHardRock is enabled
                 // HR: CS * 1.3 (capped at 11), AR/OD * 1.4 (capped at 10)
                 // These are intentionally applied to the currently computed difficulty values,
@@ -322,13 +314,27 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                     difficulty.OverallDifficulty = Math.Min(difficulty.OverallDifficulty * 1.4f, 10f);
                 }
 
-                // Update running difficulty for next object
-                runningDifficulty.CircleSize = runningCircleSize;
-                runningDifficulty.ApproachRate = runningApproachRate;
-                runningDifficulty.OverallDifficulty = runningOverallDifficulty;
-
                 hitObject.ApplyDefaults(beatmap.ControlPointInfo, difficulty);
             }
+
+        }
+
+        private static BeatmapDifficulty computeSectionInheritedBaseline(List<SectionGimmickSection> orderedSections, SectionGimmickSection targetSection, BeatmapDifficulty baseDifficulty)
+        {
+            var keepSection = orderedSections
+                .Where(s => s.Id != targetSection.Id)
+                .Where(s => s.Settings.EnableDifficultyOverrides)
+                .Where(s => s.EndTime >= 0 && s.EndTime <= targetSection.StartTime)
+                .LastOrDefault();
+
+            if (keepSection?.Settings.KeepDifficultyOverridesAfterSection == true)
+            {
+                var baseline = baseDifficulty.Clone();
+                applyDifficultyOverridesForTime(keepSection, keepSection.EndTime, baseline, baseDifficulty, allowGradual: false);
+                return baseline;
+            }
+
+            return baseDifficulty.Clone();
         }
 
         private static void applyDifficultyOverridesForTime(SectionGimmickSection section, double objectTime, BeatmapDifficulty targetDifficulty, IBeatmapDifficultyInfo baseDifficulty, bool allowGradual = true)

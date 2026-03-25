@@ -39,18 +39,15 @@ namespace osu.Game.Screens.Edit.Compose
 
                 double startTime = time;
 
-                if (sections.Count > 0)
-                {
-                    var latest = sections.MaxBy(s => s.StartTime)!;
+                // Keep new section anchored to user timeline position.
+                // If the previous section spans past this point (or is open-ended), cap it here.
+                var previous = sections
+                    .Where(s => s.StartTime < startTime)
+                    .OrderBy(s => s.StartTime)
+                    .LastOrDefault();
 
-                    if (latest.EndTime < 0)
-                    {
-                        startTime = Math.Max(startTime, latest.StartTime + 1);
-                        latest.EndTime = startTime;
-                    }
-                    else if (startTime < latest.EndTime)
-                        startTime = latest.EndTime;
-                }
+                if (previous != null && (previous.EndTime < 0 || previous.EndTime > startTime))
+                    previous.EndTime = startTime;
 
                 var newSettings = new SectionGimmickSettings();
 
@@ -58,14 +55,18 @@ namespace osu.Game.Screens.Edit.Compose
                 // inherit difficulty override values from the previous section
                 if (sections.Count > 0)
                 {
-                    var latest = sections.MaxBy(s => s.StartTime)!;
-                    if (latest.Settings.KeepDifficultyOverridesAfterSection &&
-                        latest.Settings.EnableDifficultyOverrides)
+                    var source = sections
+                        .Where(s => s.StartTime < startTime)
+                        .OrderBy(s => s.StartTime)
+                        .LastOrDefault();
+
+                    if (source?.Settings.KeepDifficultyOverridesAfterSection == true &&
+                        source.Settings.EnableDifficultyOverrides)
                     {
                         newSettings.EnableDifficultyOverrides = true;
-                        newSettings.SectionCircleSize = latest.Settings.SectionCircleSize;
-                        newSettings.SectionApproachRate = latest.Settings.SectionApproachRate;
-                        newSettings.SectionOverallDifficulty = latest.Settings.SectionOverallDifficulty;
+                        newSettings.SectionCircleSize = source.Settings.SectionCircleSize;
+                        newSettings.SectionApproachRate = source.Settings.SectionApproachRate;
+                        newSettings.SectionOverallDifficulty = source.Settings.SectionOverallDifficulty;
                     }
                 }
 
@@ -284,6 +285,7 @@ namespace osu.Game.Screens.Edit.Compose
                 GreatOffsetThresholdMs = settings.GreatOffsetThresholdMs,
                 GreatOffsetPenaltyHP = settings.GreatOffsetPenaltyHP,
                 EnableDifficultyOverrides = settings.EnableDifficultyOverrides,
+                DifficultyOverrideStartWithBeatmapValues = settings.DifficultyOverrideStartWithBeatmapValues,
                 EnableGradualDifficultyChange = settings.EnableGradualDifficultyChange,
                 GradualDifficultyChangeEndTimeMs = settings.GradualDifficultyChangeEndTimeMs,
                 KeepDifficultyOverridesAfterSection = settings.KeepDifficultyOverridesAfterSection,

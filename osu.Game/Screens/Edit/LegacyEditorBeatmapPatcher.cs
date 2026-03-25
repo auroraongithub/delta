@@ -292,6 +292,7 @@ namespace osu.Game.Screens.Edit
                                 GreatOffsetThresholdMs = settings.GreatOffsetThresholdMs,
                                 GreatOffsetPenaltyHP = settings.GreatOffsetPenaltyHP,
                                 EnableDifficultyOverrides = settings.EnableDifficultyOverrides,
+                                DifficultyOverrideStartWithBeatmapValues = settings.DifficultyOverrideStartWithBeatmapValues,
                                 EnableGradualDifficultyChange = settings.EnableGradualDifficultyChange,
                                 GradualDifficultyChangeEndTimeMs = settings.GradualDifficultyChangeEndTimeMs,
                                 KeepDifficultyOverridesAfterSection = settings.KeepDifficultyOverridesAfterSection,

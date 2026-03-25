@@ -102,6 +102,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private FormCheckBox enableDifficultyOverrides = null!;
         private FillFlowContainer difficultyOverrideFields = null!;
+        private FormCheckBox difficultyOverrideStartWithBeatmapValues = null!;
         private FormCheckBox enableGradualDifficultyChange = null!;
         private FormNumberBox gradualDifficultyChangeEndTime = null!;
         private FormCheckBox keepDifficultyOverridesAfterSection = null!;
@@ -486,6 +487,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                                         Caption = "OD (0-11)",
                                         TabbableContentContainer = this,
                                     },
+                                    difficultyOverrideStartWithBeatmapValues = new FormCheckBox
+                                    {
+                                        Caption = "Start with beatmap values",
+                                    },
                                     enableGradualDifficultyChange = new FormCheckBox
                                     {
                                         Caption = "Gradual change",
@@ -670,6 +675,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             greatOffsetPenaltyHp.OnCommit += (_, _) => updateFloatSetting(greatOffsetPenaltyHp, (s, v) => s.GreatOffsetPenaltyHP = v);
 
             enableDifficultyOverrides.Current.BindValueChanged(v => mutateSetting(s => s.EnableDifficultyOverrides = v.NewValue));
+            difficultyOverrideStartWithBeatmapValues.Current.BindValueChanged(v => mutateSetting(s => s.DifficultyOverrideStartWithBeatmapValues = v.NewValue));
             enableGradualDifficultyChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualDifficultyChange = v.NewValue));
             gradualDifficultyChangeEndTime.OnCommit += (_, _) => updateFloatSetting(gradualDifficultyChangeEndTime, (s, v) => s.GradualDifficultyChangeEndTimeMs = v);
             keepDifficultyOverridesAfterSection.Current.BindValueChanged(v => mutateSetting(s => s.KeepDifficultyOverridesAfterSection = v.NewValue));
@@ -794,6 +800,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 greatOffsetPenaltyHp.Current.Value = formatFloat(settings.GreatOffsetPenaltyHP);
 
                 enableDifficultyOverrides.Current.Value = settings.EnableDifficultyOverrides;
+                difficultyOverrideStartWithBeatmapValues.Current.Value = settings.DifficultyOverrideStartWithBeatmapValues;
                 enableGradualDifficultyChange.Current.Value = settings.EnableGradualDifficultyChange;
                 gradualDifficultyChangeEndTime.Current.Value = formatFloat(settings.GradualDifficultyChangeEndTimeMs);
                 keepDifficultyOverridesAfterSection.Current.Value = settings.KeepDifficultyOverridesAfterSection;
