@@ -43,20 +43,16 @@ namespace osu.Game.Screens.Edit.Compose
                 while (sections.Any(s => Math.Abs(s.StartTime - startTime) < 0.0001))
                     startTime += 1;
 
+                var ordered = sections.OrderBy(s => s.StartTime).ToList();
+
                 // Keep new section anchored to user timeline position.
                 // If the previous section spans past this point (or is open-ended), cap it here.
-                var previous = sections
-                    .Where(s => s.StartTime < startTime)
-                    .OrderBy(s => s.StartTime)
-                    .LastOrDefault();
+                var previous = ordered.LastOrDefault(s => s.StartTime < startTime);
 
                 if (previous != null && (previous.EndTime < 0 || previous.EndTime > startTime))
                     previous.EndTime = startTime;
 
-                var next = sections
-                    .Where(s => s.StartTime > startTime)
-                    .OrderBy(s => s.StartTime)
-                    .FirstOrDefault();
+                var next = ordered.FirstOrDefault(s => s.StartTime > startTime);
 
                 var newSettings = new SectionGimmickSettings();
 
@@ -64,10 +60,7 @@ namespace osu.Game.Screens.Edit.Compose
                 // inherit difficulty override values from the previous section
                 if (sections.Count > 0)
                 {
-                    var source = sections
-                        .Where(s => s.StartTime < startTime)
-                        .OrderBy(s => s.StartTime)
-                        .LastOrDefault();
+                    var source = previous;
 
                     if (source?.Settings.KeepDifficultyOverridesAfterSection == true &&
                         source.Settings.EnableDifficultyOverrides)

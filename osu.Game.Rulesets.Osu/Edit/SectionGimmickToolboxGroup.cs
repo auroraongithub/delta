@@ -9,6 +9,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Localisation;
+using osu.Framework.Threading;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Graphics;
@@ -125,6 +126,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private bool updatingControls;
         private readonly BindableList<HitObject> selectedHitObjects = new BindableList<HitObject>();
+        private readonly ScheduledDelegate[] fadeSchedules = new ScheduledDelegate[9];
 
         public SectionGimmickToolboxGroup()
             : base("Section gimmicks")
@@ -828,32 +830,43 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private void updateGroupVisibility()
         {
-            hpGroupFields.FadeTo(enableHpGimmick.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(hpGroupFields, enableHpGimmick.Current.Value, 0);
             hpGroupFields.AlwaysPresent = enableHpGimmick.Current.Value;
 
-            hpSliderRoutingFields.FadeTo(enableHpGimmick.Current.Value && showHpSliderRouting.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(hpSliderRoutingFields, enableHpGimmick.Current.Value && showHpSliderRouting.Current.Value, 1);
             hpSliderRoutingFields.AlwaysPresent = enableHpGimmick.Current.Value && showHpSliderRouting.Current.Value;
 
-            countLimitFields.FadeTo(enableCountLimits.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(countLimitFields, enableCountLimits.Current.Value, 2);
             countLimitFields.AlwaysPresent = enableCountLimits.Current.Value;
 
-            countSliderRoutingFields.FadeTo(enableCountLimits.Current.Value && showCountSliderRouting.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(countSliderRoutingFields, enableCountLimits.Current.Value && showCountSliderRouting.Current.Value, 3);
             countSliderRoutingFields.AlwaysPresent = enableCountLimits.Current.Value && showCountSliderRouting.Current.Value;
 
-            greatOffsetFields.FadeTo(enableGreatOffsetPenalty.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(greatOffsetFields, enableGreatOffsetPenalty.Current.Value, 4);
             greatOffsetFields.AlwaysPresent = enableGreatOffsetPenalty.Current.Value;
 
-            difficultyOverrideFields.FadeTo(enableDifficultyOverrides.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(difficultyOverrideFields, enableDifficultyOverrides.Current.Value, 5);
             difficultyOverrideFields.AlwaysPresent = enableDifficultyOverrides.Current.Value;
 
-            gradualDifficultyChangeEndTime.FadeTo(enableGradualDifficultyChange.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(gradualDifficultyChangeEndTime, enableGradualDifficultyChange.Current.Value, 6);
             gradualDifficultyChangeEndTime.AlwaysPresent = enableGradualDifficultyChange.Current.Value;
 
-            setGradualFinishTimeButton.FadeTo(enableGradualDifficultyChange.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(setGradualFinishTimeButton, enableGradualDifficultyChange.Current.Value, 7);
             setGradualFinishTimeButton.AlwaysPresent = enableGradualDifficultyChange.Current.Value;
 
-            forceModsFields.FadeTo(showForceMods.Current.Value ? 1 : 0, 200, Easing.OutQuint);
+            scheduleFade(forceModsFields, showForceMods.Current.Value, 8);
             forceModsFields.AlwaysPresent = showForceMods.Current.Value;
+        }
+
+        private void scheduleFade(Drawable drawable, bool visible, int slot)
+        {
+            float target = visible ? 1 : 0;
+
+            if (Math.Abs(drawable.Alpha - target) < 0.0001f)
+                return;
+
+            fadeSchedules[slot]?.Cancel();
+            fadeSchedules[slot] = Scheduler.AddDelayed(() => drawable.FadeTo(target, 200, Easing.OutQuint), 0);
         }
 
         private void updateValidationState()

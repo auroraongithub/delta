@@ -53,6 +53,25 @@ namespace osu.Game.Rulesets.Osu.UI
         private bool hasForcedBloom;
         private bool hasForcedBubbles;
 
+        private bool selectedTransform;
+        private bool selectedWiggle;
+        private bool selectedSpinIn;
+        private bool selectedGrow;
+        private bool selectedDeflate;
+        private bool selectedApproachDifferent;
+        private bool selectedFreezeFrame;
+        private bool selectedSynesthesia;
+        private bool selectedBubbles;
+        private bool selectedMuted;
+        private bool selectedBarrelRoll;
+        private bool selectedNoScope;
+        private bool selectedBloom;
+        private bool selectedMagnetised;
+        private bool selectedRepel;
+        private bool selectedDepth;
+
+        private bool hasForcedMotionEffects;
+
         private bool initialDisplayJudgements;
         private readonly HashSet<DrawableHitObject> processedDrawables = new HashSet<DrawableHitObject>();
         private readonly Dictionary<(double StartTime, int ComboIndexWithOffsets), SectionGimmickSettings?> startSettingsCache = new Dictionary<(double StartTime, int ComboIndexWithOffsets), SectionGimmickSettings?>();
@@ -80,13 +99,33 @@ namespace osu.Game.Rulesets.Osu.UI
         [BackgroundDependencyLoader]
         private void load()
         {
-            hasForcedMuted = hasAnyForced(s => s.ForceMuted) && !isSelected<OsuModMuted>();
-            hasForcedBarrelRoll = hasAnyForced(s => s.ForceBarrelRoll) && !isSelected<OsuModBarrelRoll>();
-            hasForcedNoScope = hasAnyForced(s => s.ForceNoScope) && !isSelected<OsuModNoScope>();
-            hasForcedBloom = hasAnyForced(s => s.ForceBloom) && !isSelected<OsuModBloom>();
-            hasForcedBubbles = hasAnyForced(s => s.ForceBubbles) && !isSelected<OsuModBubbles>();
+            selectedTransform = hasSelectedMod<OsuModTransform>();
+            selectedWiggle = hasSelectedMod<OsuModWiggle>();
+            selectedSpinIn = hasSelectedMod<OsuModSpinIn>();
+            selectedGrow = hasSelectedMod<OsuModGrow>();
+            selectedDeflate = hasSelectedMod<OsuModDeflate>();
+            selectedApproachDifferent = hasSelectedMod<OsuModApproachDifferent>();
+            selectedFreezeFrame = hasSelectedMod<OsuModFreezeFrame>();
+            selectedSynesthesia = hasSelectedMod<OsuModSynesthesia>();
+            selectedBubbles = hasSelectedMod<OsuModBubbles>();
+            selectedMuted = hasSelectedMod<OsuModMuted>();
+            selectedBarrelRoll = hasSelectedMod<OsuModBarrelRoll>();
+            selectedNoScope = hasSelectedMod<OsuModNoScope>();
+            selectedBloom = hasSelectedMod<OsuModBloom>();
+            selectedMagnetised = hasSelectedMod<OsuModMagnetised>();
+            selectedRepel = hasSelectedMod<OsuModRepel>();
+            selectedDepth = hasSelectedMod<OsuModDepth>();
 
-            if (hasAnyForced(s => s.ForceSynesthesia) && !isSelected<OsuModSynesthesia>())
+            hasForcedMuted = hasAnyForced(s => s.ForceMuted) && !selectedMuted;
+            hasForcedBarrelRoll = hasAnyForced(s => s.ForceBarrelRoll) && !selectedBarrelRoll;
+            hasForcedNoScope = hasAnyForced(s => s.ForceNoScope) && !selectedNoScope;
+            hasForcedBloom = hasAnyForced(s => s.ForceBloom) && !selectedBloom;
+            hasForcedBubbles = hasAnyForced(s => s.ForceBubbles) && !selectedBubbles;
+            hasForcedMotionEffects = (hasAnyForced(s => s.ForceMagnetised) && !selectedMagnetised)
+                                     || (hasAnyForced(s => s.ForceRepel) && !selectedRepel)
+                                     || (hasAnyForced(s => s.ForceDepth) && !selectedDepth);
+
+            if (hasAnyForced(s => s.ForceSynesthesia) && !selectedSynesthesia)
             {
                 synesthesiaMod = new OsuModSynesthesia();
                 synesthesiaMod.ApplyToBeatmap(beatmap);
@@ -104,9 +143,7 @@ namespace osu.Game.Rulesets.Osu.UI
             if (hasForcedMuted)
                 drawableRuleset.Audio.AddAdjustment(AdjustableProperty.Volume, mutedVolumeAdjustment);
 
-            if ((hasAnyForced(s => s.ForceMagnetised) && !isSelected<OsuModMagnetised>())
-                || (hasAnyForced(s => s.ForceRepel) && !isSelected<OsuModRepel>())
-                || (hasAnyForced(s => s.ForceDepth) && !isSelected<OsuModDepth>()))
+            if (hasForcedMotionEffects)
             {
                 if (drawableRuleset.Playfield is OsuPlayfield osuPlayfield)
                     osuPlayfield.FollowPoints.Hide();
@@ -126,11 +163,13 @@ namespace osu.Game.Rulesets.Osu.UI
 
         private void applyDrawableModsOnce()
         {
-            if (!drawableRuleset.Playfield.AllHitObjects.Any())
+            if (!drawableRuleset.Playfield.HitObjectContainer.AliveEntries.Any())
                 return;
 
-            foreach (var drawable in drawableRuleset.Playfield.AllHitObjects)
+            foreach (var entry in drawableRuleset.Playfield.HitObjectContainer.AliveEntries)
             {
+                DrawableHitObject drawable = entry.Value;
+
                 if (!processedDrawables.Add(drawable))
                     continue;
 
@@ -138,34 +177,34 @@ namespace osu.Game.Rulesets.Osu.UI
                 if (settings == null)
                     continue;
 
-                if (settings.ForceTransform && !isSelected<OsuModTransform>())
+                if (settings.ForceTransform && !selectedTransform)
                     applyModToDrawable(new OsuModTransform(), drawable);
 
-                if (settings.ForceWiggle && !isSelected<OsuModWiggle>())
+                if (settings.ForceWiggle && !selectedWiggle)
                 {
                     var mod = new OsuModWiggle();
                     mod.Strength.Value = Math.Clamp(settings.WiggleStrength, 0.1f, 2f);
                     applyModToDrawable(mod, drawable);
                 }
 
-                if (settings.ForceSpinIn && !isSelected<OsuModSpinIn>())
+                if (settings.ForceSpinIn && !selectedSpinIn)
                     applyModToDrawable(new OsuModSpinIn(), drawable);
 
-                if (settings.ForceGrow && !isSelected<OsuModGrow>())
+                if (settings.ForceGrow && !selectedGrow)
                 {
                     var mod = new OsuModGrow();
                     mod.StartScale.Value = Math.Clamp(settings.GrowStartScale, 0f, 0.99f);
                     applyModToDrawable(mod, drawable);
                 }
 
-                if (settings.ForceDeflate && !isSelected<OsuModDeflate>())
+                if (settings.ForceDeflate && !selectedDeflate)
                 {
                     var mod = new OsuModDeflate();
                     mod.StartScale.Value = Math.Clamp(settings.DeflateStartScale, 1f, 25f);
                     applyModToDrawable(mod, drawable);
                 }
 
-                if (settings.ForceApproachDifferent && !isSelected<OsuModApproachDifferent>())
+                if (settings.ForceApproachDifferent && !selectedApproachDifferent)
                 {
                     var mod = new OsuModApproachDifferent();
                     mod.Scale.Value = Math.Clamp(settings.ApproachDifferentScale, 1.5f, 10f);
@@ -178,7 +217,7 @@ namespace osu.Game.Rulesets.Osu.UI
                 if (settings.ForceBubbles && bubblesMod != null)
                     bubblesMod.ApplyToDrawableHitObject(drawable);
 
-                if (settings.ForceFreezeFrame && !isSelected<OsuModFreezeFrame>())
+                if (settings.ForceFreezeFrame && !selectedFreezeFrame)
                     applyCustomFreezeFrame(drawable);
             }
         }
@@ -312,6 +351,9 @@ namespace osu.Game.Rulesets.Osu.UI
 
         private void updateMotionEffects()
         {
+            if (!hasForcedMotionEffects)
+                return;
+
             if (drawableRuleset.Playfield.Cursor == null)
                 return;
 
@@ -325,19 +367,19 @@ namespace osu.Game.Rulesets.Osu.UI
                 if (settings == null)
                     continue;
 
-                if (settings.ForceDepth && !isSelected<OsuModDepth>())
+                if (settings.ForceDepth && !selectedDepth)
                 {
                     applyDepth(time, drawable, Math.Clamp(settings.DepthMaxDepth, 50f, 200f));
                     continue;
                 }
 
-                if (settings.ForceMagnetised && !isSelected<OsuModMagnetised>())
+                if (settings.ForceMagnetised && !selectedMagnetised)
                 {
                     applyMagnetised(drawable, cursorPos, Math.Clamp(settings.MagnetisedAttractionStrength, 0.05f, 1f));
                     continue;
                 }
 
-                if (settings.ForceRepel && !isSelected<OsuModRepel>())
+                if (settings.ForceRepel && !selectedRepel)
                     applyRepel(drawable, cursorPos, Math.Clamp(settings.RepelRepulsionStrength, 0.05f, 1f));
             }
         }
@@ -536,7 +578,7 @@ namespace osu.Game.Rulesets.Osu.UI
         private bool hasAnyForced(Func<SectionGimmickSettings, bool> predicate)
             => gimmicks.Sections.Any(s => predicate(s.Settings));
 
-        private bool isSelected<TMod>()
+        private bool hasSelectedMod<TMod>()
             where TMod : Mod
             => selectedMods.Any(m => m is TMod);
 

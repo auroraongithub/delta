@@ -12,6 +12,50 @@ namespace osu.Game.Rulesets.Osu.Edit
 {
     public class HitObjectGimmickEditorModel
     {
+        public readonly struct SelectionState
+        {
+            public readonly bool HasSelection;
+            public readonly int SelectionCount;
+            public readonly bool EnableHPGimmick;
+            public readonly bool EnableNoMiss;
+            public readonly bool EnableCountLimits;
+            public readonly bool EnableGreatOffsetPenalty;
+            public readonly bool EnableDifficultyOverrides;
+            public readonly bool ForceHidden;
+            public readonly bool ForceHardRock;
+            public readonly bool ForceFlashlight;
+            public readonly bool ForceNoApproachCircle;
+            public readonly SectionGimmickSettings? RepresentativeSettings;
+
+            public SelectionState(
+                bool hasSelection,
+                int selectionCount,
+                bool enableHpGimmick,
+                bool enableNoMiss,
+                bool enableCountLimits,
+                bool enableGreatOffsetPenalty,
+                bool enableDifficultyOverrides,
+                bool forceHidden,
+                bool forceHardRock,
+                bool forceFlashlight,
+                bool forceNoApproachCircle,
+                SectionGimmickSettings? representativeSettings)
+            {
+                HasSelection = hasSelection;
+                SelectionCount = selectionCount;
+                EnableHPGimmick = enableHpGimmick;
+                EnableNoMiss = enableNoMiss;
+                EnableCountLimits = enableCountLimits;
+                EnableGreatOffsetPenalty = enableGreatOffsetPenalty;
+                EnableDifficultyOverrides = enableDifficultyOverrides;
+                ForceHidden = forceHidden;
+                ForceHardRock = forceHardRock;
+                ForceFlashlight = forceFlashlight;
+                ForceNoApproachCircle = forceNoApproachCircle;
+                RepresentativeSettings = representativeSettings;
+            }
+        }
+
         private readonly EditorBeatmap editorBeatmap;
 
         public HitObjectGimmickEditorModel(EditorBeatmap editorBeatmap)
@@ -58,6 +102,38 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         public bool IsSelectionForceFlashlight
             => getSelectionBoolState(s => s.ForceFlashlight);
+
+        public SelectionState GetSelectionState()
+        {
+            var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+
+            if (selected.Count == 0)
+                return new SelectionState(false, 0, false, false, false, false, false, false, false, false, false, null);
+
+            var lookup = createLookup(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
+
+            bool getBoolState(System.Func<HitObjectGimmickSettings, bool> getter)
+                => selected.All(h => lookup.TryGetValue((h.StartTime, h.ComboIndexWithOffsets), out var settings) && getter(settings));
+
+            var first = selected[0];
+            SectionGimmickSettings? representative = lookup.TryGetValue((first.StartTime, first.ComboIndexWithOffsets), out var firstSettings)
+                ? mapToSectionSettings(firstSettings)
+                : new SectionGimmickSettings();
+
+            return new SelectionState(
+                hasSelection: true,
+                selectionCount: selected.Count,
+                enableHpGimmick: getBoolState(s => s.EnableHPGimmick),
+                enableNoMiss: getBoolState(s => s.EnableNoMiss),
+                enableCountLimits: getBoolState(s => s.EnableCountLimits),
+                enableGreatOffsetPenalty: getBoolState(s => s.EnableGreatOffsetPenalty),
+                enableDifficultyOverrides: getBoolState(s => s.EnableDifficultyOverrides),
+                forceHidden: getBoolState(s => s.ForceHidden),
+                forceHardRock: getBoolState(s => s.ForceHardRock),
+                forceFlashlight: getBoolState(s => s.ForceFlashlight),
+                forceNoApproachCircle: selected.All(h => isNoApproachForced(h, lookup)),
+                representativeSettings: representative);
+        }
 
         public SectionGimmickSettings? GetSelectionRepresentativeSettings()
         {

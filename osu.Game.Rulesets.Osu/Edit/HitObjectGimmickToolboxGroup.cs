@@ -6,6 +6,7 @@ using System.Globalization;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Threading;
 using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
@@ -59,6 +60,8 @@ namespace osu.Game.Rulesets.Osu.Edit
         private OsuSpriteText selectionStatus = null!;
 
         private bool updatingControls;
+        private readonly ScheduledDelegate[] fadeSchedules = new ScheduledDelegate[4];
+        private bool selectionUpdateScheduled;
 
         public HitObjectGimmickToolboxGroup()
             : base("hit object gimmicks")
@@ -121,11 +124,11 @@ namespace osu.Game.Rulesets.Osu.Edit
 
             bindControlEvents();
 
-            editorBeatmap.SelectedHitObjects.BindCollectionChanged((_, _) => updateFromSelection(), true);
-            editorBeatmap.HitObjectUpdated += _ => updateFromSelection();
-            editorBeatmap.HitObjectAdded += _ => updateFromSelection();
-            editorBeatmap.HitObjectRemoved += _ => updateFromSelection();
-            editorBeatmap.BeatmapReprocessed += updateFromSelection;
+            editorBeatmap.SelectedHitObjects.BindCollectionChanged((_, _) => scheduleSelectionUpdate(), true);
+            editorBeatmap.HitObjectUpdated += _ => scheduleSelectionUpdate();
+            editorBeatmap.HitObjectAdded += _ => scheduleSelectionUpdate();
+            editorBeatmap.HitObjectRemoved += _ => scheduleSelectionUpdate();
+            editorBeatmap.BeatmapReprocessed += scheduleSelectionUpdate;
         }
 
         private void bindControlEvents()
@@ -159,14 +162,28 @@ namespace osu.Game.Rulesets.Osu.Edit
             sectionOverallDifficulty.OnCommit += (_, _) => setFloat(sectionOverallDifficulty, (s, value) => s.SectionOverallDifficulty = value);
         }
 
+        private void scheduleSelectionUpdate()
+        {
+            if (selectionUpdateScheduled)
+                return;
+
+            selectionUpdateScheduled = true;
+            Scheduler.AddOnce(() =>
+            {
+                selectionUpdateScheduled = false;
+                updateFromSelection();
+            });
+        }
+
         private void updateFromSelection()
         {
             updatingControls = true;
 
-            bool hasSelection = model.HasSelection;
+            var state = model.GetSelectionState();
+            bool hasSelection = state.HasSelection;
 
             selectionStatus.Text = hasSelection
-                ? $"Selected objects: {editorBeatmap.SelectedHitObjects.Count}"
+                ? $"Selected objects: {state.SelectionCount}"
                 : "No object selected";
             selectionStatus.Colour = hasSelection ? Color4.White : Color4.Gray;
 
@@ -181,18 +198,18 @@ namespace osu.Game.Rulesets.Osu.Edit
                 enableDifficultyOverrides, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
                 forceHidden, forceHardRock, forceFlashlight, forceNoApproachCircle);
 
-            enableHpGimmick.Current.Value = hasSelection && model.IsSelectionEnableHPGimmick;
-            enableNoMiss.Current.Value = hasSelection && model.IsSelectionEnableNoMiss;
-            enableCountLimits.Current.Value = hasSelection && model.IsSelectionEnableCountLimits;
-            enableGreatOffsetPenalty.Current.Value = hasSelection && model.IsSelectionEnableGreatOffsetPenalty;
-            enableDifficultyOverrides.Current.Value = hasSelection && model.IsSelectionEnableDifficultyOverrides;
+            enableHpGimmick.Current.Value = hasSelection && state.EnableHPGimmick;
+            enableNoMiss.Current.Value = hasSelection && state.EnableNoMiss;
+            enableCountLimits.Current.Value = hasSelection && state.EnableCountLimits;
+            enableGreatOffsetPenalty.Current.Value = hasSelection && state.EnableGreatOffsetPenalty;
+            enableDifficultyOverrides.Current.Value = hasSelection && state.EnableDifficultyOverrides;
 
-            forceHidden.Current.Value = hasSelection && model.IsSelectionForceHidden;
-            forceHardRock.Current.Value = hasSelection && model.IsSelectionForceHardRock;
-            forceFlashlight.Current.Value = hasSelection && model.IsSelectionForceFlashlight;
-            forceNoApproachCircle.Current.Value = hasSelection && model.IsSelectionNoApproachCircleForced;
+            forceHidden.Current.Value = hasSelection && state.ForceHidden;
+            forceHardRock.Current.Value = hasSelection && state.ForceHardRock;
+            forceFlashlight.Current.Value = hasSelection && state.ForceFlashlight;
+            forceNoApproachCircle.Current.Value = hasSelection && state.ForceNoApproachCircle;
 
-            var representative = model.GetSelectionRepresentativeSettings();
+            var representative = state.RepresentativeSettings;
             hp300.Current.Value = formatFloat(representative?.HP300 ?? float.NaN);
             hp100.Current.Value = formatFloat(representative?.HP100 ?? float.NaN);
             hp50.Current.Value = formatFloat(representative?.HP50 ?? float.NaN);
@@ -210,16 +227,16 @@ namespace osu.Game.Rulesets.Osu.Edit
             sectionApproachRate.Current.Value = formatFloat(representative?.SectionApproachRate ?? float.NaN);
             sectionOverallDifficulty.Current.Value = formatFloat(representative?.SectionOverallDifficulty ?? float.NaN);
 
-            hpFields.FadeTo(enableHpGimmick.Current.Value ? 1 : 0, 200);
+            scheduleFade(hpFields, enableHpGimmick.Current.Value, 0);
             hpFields.AlwaysPresent = enableHpGimmick.Current.Value;
 
-            countLimitFields.FadeTo(enableCountLimits.Current.Value ? 1 : 0, 200);
+            scheduleFade(countLimitFields, enableCountLimits.Current.Value, 1);
             countLimitFields.AlwaysPresent = enableCountLimits.Current.Value;
 
-            offsetPenaltyFields.FadeTo(enableGreatOffsetPenalty.Current.Value ? 1 : 0, 200);
+            scheduleFade(offsetPenaltyFields, enableGreatOffsetPenalty.Current.Value, 2);
             offsetPenaltyFields.AlwaysPresent = enableGreatOffsetPenalty.Current.Value;
 
-            difficultyOverrideFields.FadeTo(enableDifficultyOverrides.Current.Value ? 1 : 0, 200);
+            scheduleFade(difficultyOverrideFields, enableDifficultyOverrides.Current.Value, 3);
             difficultyOverrideFields.AlwaysPresent = enableDifficultyOverrides.Current.Value;
 
             if (IsLoaded)
@@ -244,6 +261,17 @@ namespace osu.Game.Rulesets.Osu.Edit
             updateFromSelection();
         }
 
+        private void scheduleFade(FillFlowContainer container, bool visible, int slot)
+        {
+            float target = visible ? 1 : 0;
+
+            if (Math.Abs(container.Alpha - target) < 0.0001f)
+                return;
+
+            fadeSchedules[slot]?.Cancel();
+            fadeSchedules[slot] = Scheduler.AddDelayed(() => container.FadeTo(target, 150), 0);
+        }
+
         private void setBool(bool value, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, bool> setter)
         {
             if (updatingControls)
@@ -253,7 +281,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 return;
 
             model.SetSelectionBoolSetting(setter, value);
-            updateFromSelection();
+            scheduleSelectionUpdate();
         }
 
         private void setFloat(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter)
@@ -268,7 +296,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 return;
 
             model.SetSelectionFloatSetting(setter, value);
-            updateFromSelection();
+            scheduleSelectionUpdate();
         }
 
         private void setInt(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, int> setter)
@@ -283,7 +311,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 return;
 
             model.SetSelectionIntSetting(setter, value);
-            updateFromSelection();
+            scheduleSelectionUpdate();
         }
 
         private static FillFlowContainer createContainer(params Drawable[] children)

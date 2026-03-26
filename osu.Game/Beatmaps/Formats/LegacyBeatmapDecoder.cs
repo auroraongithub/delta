@@ -652,6 +652,9 @@ namespace osu.Game.Beatmaps.Formats
             {
                 foreach (string kv in split[3].Split('|'))
                 {
+                    if (string.IsNullOrEmpty(kv))
+                        continue;
+
                     var pair = SplitKeyVal(kv, '=');
                     string key = pair.Key;
                     string value = pair.Value;
@@ -716,18 +719,18 @@ namespace osu.Game.Beatmaps.Formats
                         case "ForceSynesthesia": section.Settings.ForceSynesthesia = parseBool(value); break;
                         case "ForceDepth": section.Settings.ForceDepth = parseBool(value); break;
                         case "ForceBloom": section.Settings.ForceBloom = parseBool(value); break;
-                        case "WiggleStrength": section.Settings.WiggleStrength = float.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "GrowStartScale": section.Settings.GrowStartScale = float.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "DeflateStartScale": section.Settings.DeflateStartScale = float.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "ApproachDifferentScale": section.Settings.ApproachDifferentScale = float.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "NoScopeHiddenComboCount": section.Settings.NoScopeHiddenComboCount = int.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "MagnetisedAttractionStrength": section.Settings.MagnetisedAttractionStrength = float.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "RepelRepulsionStrength": section.Settings.RepelRepulsionStrength = float.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "DepthMaxDepth": section.Settings.DepthMaxDepth = float.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "BloomMaxSizeComboCount": section.Settings.BloomMaxSizeComboCount = int.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "BloomMaxCursorSize": section.Settings.BloomMaxCursorSize = float.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "BarrelRollSpinSpeed": section.Settings.BarrelRollSpinSpeed = double.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "MutedMuteComboCount": section.Settings.MutedMuteComboCount = int.Parse(value, CultureInfo.InvariantCulture); break;
+                        case "WiggleStrength": if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float wiggleStrength)) section.Settings.WiggleStrength = wiggleStrength; break;
+                        case "GrowStartScale": if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float growStartScale)) section.Settings.GrowStartScale = growStartScale; break;
+                        case "DeflateStartScale": if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float deflateStartScale)) section.Settings.DeflateStartScale = deflateStartScale; break;
+                        case "ApproachDifferentScale": if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float approachDifferentScale)) section.Settings.ApproachDifferentScale = approachDifferentScale; break;
+                        case "NoScopeHiddenComboCount": if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int noScopeHiddenComboCount)) section.Settings.NoScopeHiddenComboCount = noScopeHiddenComboCount; break;
+                        case "MagnetisedAttractionStrength": if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float magnetisedAttractionStrength)) section.Settings.MagnetisedAttractionStrength = magnetisedAttractionStrength; break;
+                        case "RepelRepulsionStrength": if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float repelRepulsionStrength)) section.Settings.RepelRepulsionStrength = repelRepulsionStrength; break;
+                        case "DepthMaxDepth": if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float depthMaxDepth)) section.Settings.DepthMaxDepth = depthMaxDepth; break;
+                        case "BloomMaxSizeComboCount": if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int bloomMaxSizeComboCount)) section.Settings.BloomMaxSizeComboCount = bloomMaxSizeComboCount; break;
+                        case "BloomMaxCursorSize": if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float bloomMaxCursorSize)) section.Settings.BloomMaxCursorSize = bloomMaxCursorSize; break;
+                        case "BarrelRollSpinSpeed": if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double barrelRollSpinSpeed)) section.Settings.BarrelRollSpinSpeed = barrelRollSpinSpeed; break;
+                        case "MutedMuteComboCount": if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int mutedMuteComboCount)) section.Settings.MutedMuteComboCount = mutedMuteComboCount; break;
                         case "SectionName": section.Settings.SectionName = value; break;
                         case "DisplayColor":
                             if (uint.TryParse(value, out uint colorArgb))
@@ -772,6 +775,9 @@ namespace osu.Game.Beatmaps.Formats
             {
                 foreach (string kv in split[2].Split('|'))
                 {
+                    if (string.IsNullOrEmpty(kv))
+                        continue;
+
                     var pair = SplitKeyVal(kv, '=');
                     string key = pair.Key;
                     string value = pair.Value;

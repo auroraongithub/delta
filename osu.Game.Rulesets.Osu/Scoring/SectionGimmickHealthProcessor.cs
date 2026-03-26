@@ -32,9 +32,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
         {
             gimmicks = beatmap.SectionGimmicks ?? new BeatmapSectionGimmicks();
             hitObjectGimmicks = beatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks();
-            objectSettingsLookup = hitObjectGimmicks.Entries
-                .GroupBy(e => (e.StartTime, e.ComboIndexWithOffsets))
-                .ToDictionary(g => g.Key, g => g.First().Settings);
+            objectSettingsLookup = createObjectSettingsLookup(hitObjectGimmicks);
             SectionGimmicksValidator.Validate(gimmicks);
             base.ApplyBeatmap(beatmap);
         }
@@ -64,10 +62,11 @@ namespace osu.Game.Rulesets.Osu.Scoring
         {
             var section = resolveSection(result.HitObject.StartTime);
             var objectSettings = resolveObjectSettings(result.HitObject);
+            SectionGimmickSettings? settings = null;
 
             if (section != null || objectSettings != null)
             {
-                var settings = mergeSettings(section?.Settings, objectSettings);
+                settings = mergeSettings(section?.Settings, objectSettings);
 
                 if (settings.EnableNoMiss && result.Type == HitResult.Miss)
                 {
@@ -94,15 +93,24 @@ namespace osu.Game.Rulesets.Osu.Scoring
             base.ApplyResultInternal(result);
 
             // Apply additional offset penalty after base judgement application.
-            if (section != null || objectSettings != null)
+            if (settings != null)
             {
-                var settings = mergeSettings(section?.Settings, objectSettings);
                 if (settings.EnableGreatOffsetPenalty && shouldApplyOffsetPenalty(settings, result))
                 {
                     if (Math.Abs(result.TimeOffset) > settings.GreatOffsetThresholdMs)
                         Health.Value += settings.GreatOffsetPenaltyHP;
                 }
             }
+        }
+
+        private static Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> createObjectSettingsLookup(BeatmapHitObjectGimmicks gimmicks)
+        {
+            var lookup = new Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings>();
+
+            foreach (var entry in gimmicks.Entries)
+                lookup[(entry.StartTime, entry.ComboIndexWithOffsets)] = entry.Settings ?? new HitObjectGimmickSettings();
+
+            return lookup;
         }
 
         protected override double GetHealthIncreaseFor(JudgementResult result)
