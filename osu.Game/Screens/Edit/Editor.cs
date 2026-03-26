@@ -625,13 +625,20 @@ namespace osu.Game.Screens.Edit
                 var working = beatmapManager.GetWorkingBeatmap(difficulty);
                 var playable = working.GetPlayableBeatmap(difficulty.Ruleset);
 
-                // cannot assign directly due IBeatmap internal setter from another assembly.
-                if (playable is Beatmap target)
+                if (TryApplySectionGimmicksToTargetBeatmap(playable, source))
                 {
-                    target.SectionGimmicks = Compose.SectionGimmickEditorModel.CloneGimmicks(source);
-                    beatmapManager.Save(difficulty, target, working.GetSkin());
+                    beatmapManager.Save(difficulty, playable, working.GetSkin());
                 }
             }
+        }
+
+        internal static bool TryApplySectionGimmicksToTargetBeatmap(IBeatmap target, Beatmaps.SectionGimmicks.BeatmapSectionGimmicks source)
+        {
+            if (target == null || source == null)
+                return false;
+
+            target.SectionGimmicks = Compose.SectionGimmickEditorModel.CloneGimmicks(source);
+            return true;
         }
 
         protected override void Update()
