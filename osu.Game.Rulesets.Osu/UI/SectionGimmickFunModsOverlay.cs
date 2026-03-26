@@ -55,6 +55,7 @@ namespace osu.Game.Rulesets.Osu.UI
 
         private bool initialDisplayJudgements;
         private readonly HashSet<DrawableHitObject> processedDrawables = new HashSet<DrawableHitObject>();
+        private readonly Dictionary<(double StartTime, int ComboIndexWithOffsets), SectionGimmickSettings?> startSettingsCache = new Dictionary<(double StartTime, int ComboIndexWithOffsets), SectionGimmickSettings?>();
 
         [Resolved(canBeNull: true)]
         private OsuConfigManager? config { get; set; }
@@ -133,7 +134,7 @@ namespace osu.Game.Rulesets.Osu.UI
                 if (!processedDrawables.Add(drawable))
                     continue;
 
-                SectionGimmickSettings? settings = resolveSettingsAtTime(drawable.HitObject.StartTime);
+                SectionGimmickSettings? settings = resolveSettingsForHitObject(drawable.HitObject);
                 if (settings == null)
                     continue;
 
@@ -320,7 +321,7 @@ namespace osu.Game.Rulesets.Osu.UI
             foreach (var entry in drawableRuleset.Playfield.HitObjectContainer.AliveEntries)
             {
                 DrawableHitObject drawable = entry.Value;
-                SectionGimmickSettings? settings = resolveSettingsAtTime(drawable.HitObject.StartTime);
+                SectionGimmickSettings? settings = resolveSettingsForHitObject(drawable.HitObject);
                 if (settings == null)
                     continue;
 
@@ -516,6 +517,21 @@ namespace osu.Game.Rulesets.Osu.UI
 
         private SectionGimmickSettings? resolveSettingsAtTime(double time)
             => SectionGimmickSectionResolver.Resolve(gimmicks, time)?.Settings;
+
+        private SectionGimmickSettings? resolveSettingsForHitObject(osu.Game.Rulesets.Objects.HitObject hitObject)
+        {
+            if (hitObject is not OsuHitObject osuHitObject)
+                return null;
+
+            var key = (osuHitObject.StartTime, osuHitObject.ComboIndexWithOffsets);
+
+            if (startSettingsCache.TryGetValue(key, out var settings))
+                return settings;
+
+            settings = resolveSettingsAtTime(osuHitObject.StartTime);
+            startSettingsCache[key] = settings;
+            return settings;
+        }
 
         private bool hasAnyForced(Func<SectionGimmickSettings, bool> predicate)
             => gimmicks.Sections.Any(s => predicate(s.Settings));

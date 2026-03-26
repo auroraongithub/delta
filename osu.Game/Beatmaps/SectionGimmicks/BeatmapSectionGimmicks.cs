@@ -11,6 +11,19 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         public List<SectionGimmickSection> Sections { get; set; } = new List<SectionGimmickSection>();
 
         public SectionGimmickSection? FindSectionAt(double time)
-            => Sections.OrderBy(s => s.StartTime).FirstOrDefault(s => s.Contains(time));
+        {
+            SectionGimmickSection? best = null;
+
+            foreach (var section in Sections)
+            {
+                if (!section.Contains(time))
+                    continue;
+
+                if (best == null || section.StartTime > best.StartTime)
+                    best = section;
+            }
+
+            return best;
+        }
     }
 }

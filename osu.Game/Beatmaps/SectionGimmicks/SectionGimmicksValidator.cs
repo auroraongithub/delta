@@ -28,6 +28,12 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                 validateRange(settings.HP50, section.Id, nameof(settings.HP50));
                 validateRange(settings.HPMiss, section.Id, nameof(settings.HPMiss));
 
+                if (!float.IsNaN(settings.HPStart) && (settings.HPStart < 0 || settings.HPStart > 1))
+                    throw new InvalidOperationException($"Section {section.Id}: HPStart must be in [0, 1].");
+
+                if (!float.IsNaN(settings.HPCap) && (settings.HPCap < 0 || settings.HPCap > 1))
+                    throw new InvalidOperationException($"Section {section.Id}: HPCap must be in [0, 1].");
+
                 if (settings.EnableHPGimmick)
                 {
                     if (!settings.NoDrain)

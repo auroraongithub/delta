@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.HitObjectGimmicks;
@@ -17,6 +18,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
         private readonly SectionGimmickCountTracker countTracker = new SectionGimmickCountTracker();
         private BeatmapSectionGimmicks gimmicks = new BeatmapSectionGimmicks();
         private BeatmapHitObjectGimmicks hitObjectGimmicks = new BeatmapHitObjectGimmicks();
+        private Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> objectSettingsLookup = new Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings>();
         private SectionGimmickSection? activeSection;
 
         public SectionGimmickSection? ActiveSection => activeSection;
@@ -30,6 +32,9 @@ namespace osu.Game.Rulesets.Osu.Scoring
         {
             gimmicks = beatmap.SectionGimmicks ?? new BeatmapSectionGimmicks();
             hitObjectGimmicks = beatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks();
+            objectSettingsLookup = hitObjectGimmicks.Entries
+                .GroupBy(e => (e.StartTime, e.ComboIndexWithOffsets))
+                .ToDictionary(g => g.Key, g => g.First().Settings);
             SectionGimmicksValidator.Validate(gimmicks);
             base.ApplyBeatmap(beatmap);
         }
@@ -71,7 +76,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
                 }
 
                 if (settings.EnableNoMissedSliderEnd &&
-                    (result.HitObject is SliderEndCircle || result.HitObject is SliderTick) &&
+                    (result.HitObject is SliderEndCircle || result.HitObject is SliderRepeat || result.HitObject is SliderTick) &&
                     (result.Type == HitResult.IgnoreMiss || result.Type == HitResult.LargeTickMiss || result.Type == HitResult.SmallTickMiss))
                 {
                     TriggerFailure();
@@ -127,7 +132,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
             // When ReverseHP is true, positive HP values should heal (add to health)
             double delta = settings.ReverseHP ? hpValue : -hpValue;
 
-            if (!float.IsNaN(settings.HPCap))
+            if (!float.IsNaN(settings.HPCap) && delta > 0)
                 delta = Math.Min(delta, settings.HPCap - Health.Value);
 
             return delta;
@@ -159,7 +164,8 @@ namespace osu.Game.Rulesets.Osu.Scoring
                     return settings.HPMissAffectsSliderEndAndTickMisses ? HitResult.Miss : HitResult.None;
 
                 case HitResult.IgnoreMiss:
-                    return settings.HPMissAffectsSliderEndAndTickMisses && result.HitObject is SliderEndCircle
+                    return settings.HPMissAffectsSliderEndAndTickMisses
+                           && (result.HitObject is SliderEndCircle || result.HitObject is SliderRepeat)
                         ? HitResult.Miss
                         : HitResult.None;
 
@@ -229,9 +235,9 @@ namespace osu.Game.Rulesets.Osu.Scoring
             if (hitObject is not OsuHitObject osuHitObject)
                 return null;
 
-            return hitObjectGimmicks.Entries.FirstOrDefault(e =>
-                e.StartTime == osuHitObject.StartTime
-                && e.ComboIndexWithOffsets == osuHitObject.ComboIndexWithOffsets)?.Settings;
+            return objectSettingsLookup.TryGetValue((osuHitObject.StartTime, osuHitObject.ComboIndexWithOffsets), out var settings)
+                ? settings
+                : null;
         }
 
         private static SectionGimmickSettings mergeSettings(SectionGimmickSettings? sectionSettings, HitObjectGimmickSettings? objectSettings)
@@ -243,6 +249,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
                 result.EnableHPGimmick = sectionSettings.EnableHPGimmick;
                 result.EnableNoMiss = sectionSettings.EnableNoMiss;
                 result.EnableCountLimits = sectionSettings.EnableCountLimits;
+                result.EnableNoMissedSliderEnd = sectionSettings.EnableNoMissedSliderEnd;
                 result.EnableGreatOffsetPenalty = sectionSettings.EnableGreatOffsetPenalty;
 
                 result.Max300s = sectionSettings.Max300s;
@@ -254,6 +261,16 @@ namespace osu.Game.Rulesets.Osu.Scoring
                 result.HP100 = sectionSettings.HP100;
                 result.HP50 = sectionSettings.HP50;
                 result.HPMiss = sectionSettings.HPMiss;
+                result.HPStart = sectionSettings.HPStart;
+                result.HPCap = sectionSettings.HPCap;
+                result.HP300AffectsSliderEndsAndTicks = sectionSettings.HP300AffectsSliderEndsAndTicks;
+                result.HP100AffectsSliderEndsAndTicks = sectionSettings.HP100AffectsSliderEndsAndTicks;
+                result.HP50AffectsSliderEndsAndTicks = sectionSettings.HP50AffectsSliderEndsAndTicks;
+                result.HPMissAffectsSliderEndAndTickMisses = sectionSettings.HPMissAffectsSliderEndAndTickMisses;
+                result.Max300sAffectsSliderEndsAndTicks = sectionSettings.Max300sAffectsSliderEndsAndTicks;
+                result.Max100sAffectsSliderEndsAndTicks = sectionSettings.Max100sAffectsSliderEndsAndTicks;
+                result.Max50sAffectsSliderEndsAndTicks = sectionSettings.Max50sAffectsSliderEndsAndTicks;
+                result.MaxMissesAffectsSliderEndAndTickMisses = sectionSettings.MaxMissesAffectsSliderEndAndTickMisses;
                 result.NoDrain = sectionSettings.NoDrain;
                 result.ReverseHP = sectionSettings.ReverseHP;
 

@@ -67,6 +67,35 @@ namespace osu.Game.Tests.Editing
         }
 
         [Test]
+        public void TestAddSectionBeforeExistingUsesTimelinePositionAndEndsAtNextSection()
+        {
+            var editorBeatmap = createEditorBeatmap();
+            var model = new SectionGimmickEditorModel(editorBeatmap);
+
+            model.AddSection(5000);
+            model.AddSection(2000);
+
+            var sectionAt2000 = model.Sections.Single(s => s.StartTime == 2000);
+            var sectionAt5000 = model.Sections.Single(s => s.StartTime == 5000);
+
+            Assert.That(sectionAt2000.EndTime, Is.EqualTo(5000));
+            Assert.That(sectionAt5000.EndTime, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void TestAddSectionCapsPreviousOpenEndedSectionAtInsertionPoint()
+        {
+            var editorBeatmap = createEditorBeatmap();
+            var model = new SectionGimmickEditorModel(editorBeatmap);
+
+            model.AddSection(1000);
+            model.AddSection(3000);
+
+            var first = model.Sections.Single(s => s.StartTime == 1000);
+            Assert.That(first.EndTime, Is.EqualTo(3000));
+        }
+
+        [Test]
         public void TestCloneGimmicksCreatesDeepCopy()
         {
             var source = new BeatmapSectionGimmicks();

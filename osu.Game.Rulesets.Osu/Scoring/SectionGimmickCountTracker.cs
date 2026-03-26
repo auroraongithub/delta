@@ -95,7 +95,8 @@ namespace osu.Game.Rulesets.Osu.Scoring
                     return settings.MaxMissesAffectsSliderEndAndTickMisses ? HitResult.Miss : HitResult.None;
 
                 case HitResult.IgnoreMiss:
-                    return settings.MaxMissesAffectsSliderEndAndTickMisses && result.HitObject is SliderEndCircle
+                    return settings.MaxMissesAffectsSliderEndAndTickMisses
+                           && (result.HitObject is SliderEndCircle || result.HitObject is SliderRepeat)
                         ? HitResult.Miss
                         : HitResult.None;
 

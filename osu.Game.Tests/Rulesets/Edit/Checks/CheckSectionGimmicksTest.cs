@@ -145,6 +145,48 @@ namespace osu.Game.Tests.Rulesets.Edit.Checks
             Assert.That(issues[0].ToString(), Does.Contain("cannot both be enabled").IgnoreCase);
         }
 
+        [Test]
+        public void TestIssueForInvalidHpStartRange()
+        {
+            var beatmap = new Beatmap();
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    HPStart = 1.2f,
+                }
+            });
+
+            var issues = new CheckSectionGimmicks().Run(createContext(beatmap)).ToList();
+
+            Assert.That(issues.Count, Is.EqualTo(1));
+            Assert.That(issues[0].ToString(), Does.Contain("HPStart").IgnoreCase);
+        }
+
+        [Test]
+        public void TestIssueForInvalidHpCapRange()
+        {
+            var beatmap = new Beatmap();
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    HPCap = -0.1f,
+                }
+            });
+
+            var issues = new CheckSectionGimmicks().Run(createContext(beatmap)).ToList();
+
+            Assert.That(issues.Count, Is.EqualTo(1));
+            Assert.That(issues[0].ToString(), Does.Contain("HPCap").IgnoreCase);
+        }
+
         private static BeatmapVerifierContext createContext(IBeatmap beatmap)
         {
             var working = new TestWorkingBeatmap(beatmap.BeatmapInfo, beatmap);

@@ -39,6 +39,10 @@ namespace osu.Game.Screens.Edit.Compose
 
                 double startTime = time;
 
+                // Avoid duplicate start times for deterministic section resolution.
+                while (sections.Any(s => Math.Abs(s.StartTime - startTime) < 0.0001))
+                    startTime += 1;
+
                 // Keep new section anchored to user timeline position.
                 // If the previous section spans past this point (or is open-ended), cap it here.
                 var previous = sections
@@ -48,6 +52,11 @@ namespace osu.Game.Screens.Edit.Compose
 
                 if (previous != null && (previous.EndTime < 0 || previous.EndTime > startTime))
                     previous.EndTime = startTime;
+
+                var next = sections
+                    .Where(s => s.StartTime > startTime)
+                    .OrderBy(s => s.StartTime)
+                    .FirstOrDefault();
 
                 var newSettings = new SectionGimmickSettings();
 
@@ -74,7 +83,7 @@ namespace osu.Game.Screens.Edit.Compose
                 {
                     Id = newId,
                     StartTime = startTime,
-                    EndTime = -1,
+                    EndTime = next?.StartTime ?? -1,
                     Settings = newSettings,
                 });
 
