@@ -6,6 +6,9 @@
 
 community-driven fork of **osu!lazer** with section and hitobject gimmick systems for mapping and gameplay experiments
 
+join our community discord!! (have fun and share stuff)
+https://discord.gg/dfPwhRtGVZ
+
 ## what this fork adds (in simplest terms)
 
 - section gimmicks and per-hitobject attributes with editor UI
