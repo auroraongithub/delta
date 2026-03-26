@@ -387,52 +387,138 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
         {
             var settings = section.Settings;
 
-            double progress = 1;
-            if (allowGradual && settings.EnableGradualDifficultyChange)
-            {
-                // Calculate the gradual change duration based on section length
-                double sectionEnd = section.EndTime >= 0 ? section.EndTime : double.MaxValue;
-                double gradualEnd;
-
-                if (float.IsNaN(settings.GradualDifficultyChangeEndTimeMs))
-                {
-                    // If no explicit gradual end is set, use the section end
-                    // This makes the gradual change duration = full section length
-                    gradualEnd = sectionEnd;
-                }
-                else
-                {
-                    gradualEnd = settings.GradualDifficultyChangeEndTimeMs;
-
-                    // If gradual end is beyond section end, cap it at section end
-                    // This prevents gradual changes that extend past the section
-                    if (gradualEnd > sectionEnd)
-                        gradualEnd = sectionEnd;
-                }
-
-                // Ensure gradual end is after section start
-                if (gradualEnd > section.StartTime)
-                {
-                    double gradualDuration = gradualEnd - section.StartTime;
-                    if (gradualDuration > 0)
-                        progress = Math.Clamp((objectTime - section.StartTime) / gradualDuration, 0, 1);
-                }
-            }
+            double sectionEnd = section.EndTime >= 0 ? section.EndTime : double.MaxValue;
 
             if (!float.IsNaN(settings.SectionCircleSize))
-                targetDifficulty.CircleSize = interpolate(baseDifficulty.CircleSize, settings.SectionCircleSize, progress, settings.EnableGradualDifficultyChange && allowGradual);
+            {
+                if (tryResolveWindowedDifficultyValue(
+                        section,
+                        objectTime,
+                        sectionEnd,
+                        settings.SectionCircleSize,
+                        baseDifficulty.CircleSize,
+                        settings.EnableSectionCircleSizeWindow,
+                        settings.SectionCircleSizeStartTimeMs,
+                        settings.SectionCircleSizeEndTimeMs,
+                        allowGradual,
+                        settings.EnableGradualSectionCircleSizeChange,
+                        settings.EnableGradualDifficultyChange,
+                        settings.GradualDifficultyChangeEndTimeMs,
+                        out float resolvedCs))
+                {
+                    targetDifficulty.CircleSize = resolvedCs;
+                }
+            }
 
             if (!float.IsNaN(settings.SectionApproachRate))
-                targetDifficulty.ApproachRate = interpolate(baseDifficulty.ApproachRate, settings.SectionApproachRate, progress, settings.EnableGradualDifficultyChange && allowGradual);
+            {
+                if (tryResolveWindowedDifficultyValue(
+                        section,
+                        objectTime,
+                        sectionEnd,
+                        settings.SectionApproachRate,
+                        baseDifficulty.ApproachRate,
+                        settings.EnableSectionApproachRateWindow,
+                        settings.SectionApproachRateStartTimeMs,
+                        settings.SectionApproachRateEndTimeMs,
+                        allowGradual,
+                        settings.EnableGradualSectionApproachRateChange,
+                        settings.EnableGradualDifficultyChange,
+                        settings.GradualDifficultyChangeEndTimeMs,
+                        out float resolvedAr))
+                {
+                    targetDifficulty.ApproachRate = resolvedAr;
+                }
+            }
 
             if (!float.IsNaN(settings.SectionOverallDifficulty))
-                targetDifficulty.OverallDifficulty = interpolate(baseDifficulty.OverallDifficulty, settings.SectionOverallDifficulty, progress, settings.EnableGradualDifficultyChange && allowGradual);
-
-            static float interpolate(float start, float end, double progress, bool quantizeToOneDecimal)
             {
-                float value = (float)(start + (end - start) * progress);
-                return quantizeToOneDecimal ? MathF.Round(value, 1, MidpointRounding.AwayFromZero) : value;
+                if (tryResolveWindowedDifficultyValue(
+                        section,
+                        objectTime,
+                        sectionEnd,
+                        settings.SectionOverallDifficulty,
+                        baseDifficulty.OverallDifficulty,
+                        settings.EnableSectionOverallDifficultyWindow,
+                        settings.SectionOverallDifficultyStartTimeMs,
+                        settings.SectionOverallDifficultyEndTimeMs,
+                        allowGradual,
+                        settings.EnableGradualSectionOverallDifficultyChange,
+                        settings.EnableGradualDifficultyChange,
+                        settings.GradualDifficultyChangeEndTimeMs,
+                        out float resolvedOd))
+                {
+                    targetDifficulty.OverallDifficulty = resolvedOd;
+                }
             }
+
+        }
+
+        private static bool tryResolveWindowedDifficultyValue(
+            SectionGimmickSection section,
+            double objectTime,
+            double sectionEnd,
+            float target,
+            float baseline,
+            bool hasWindow,
+            float configuredStart,
+            float configuredEnd,
+            bool allowGradual,
+            bool valueGradual,
+            bool globalGradual,
+            float globalGradualEndTime,
+            out float resolved)
+        {
+            resolved = target;
+
+            double windowStart = hasWindow && configuredStart >= 0 ? configuredStart : section.StartTime;
+            double windowEnd = hasWindow && configuredEnd >= 0 ? configuredEnd : sectionEnd;
+
+            if (windowEnd > sectionEnd)
+                windowEnd = sectionEnd;
+
+            if (windowStart > windowEnd)
+                return false;
+
+            if (objectTime < windowStart || objectTime > windowEnd)
+                return false;
+
+            bool useGradual = allowGradual && (globalGradual || valueGradual);
+            if (!useGradual)
+            {
+                resolved = target;
+                return true;
+            }
+
+            double gradualEnd;
+
+            if (valueGradual)
+            {
+                gradualEnd = windowEnd;
+            }
+            else if (float.IsNaN(globalGradualEndTime))
+            {
+                gradualEnd = sectionEnd;
+            }
+            else
+            {
+                gradualEnd = globalGradualEndTime;
+                if (gradualEnd > sectionEnd)
+                    gradualEnd = sectionEnd;
+
+                if (gradualEnd > windowEnd)
+                    gradualEnd = windowEnd;
+            }
+
+            if (gradualEnd <= windowStart)
+            {
+                resolved = target;
+                return true;
+            }
+
+            double progress = Math.Clamp((objectTime - windowStart) / (gradualEnd - windowStart), 0, 1);
+            resolved = MathF.Round((float)(baseline + (target - baseline) * progress), 1, MidpointRounding.AwayFromZero);
+            return true;
         }
 
         internal static void ApplyStacking(IBeatmap beatmap)

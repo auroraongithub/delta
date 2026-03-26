@@ -115,8 +115,29 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox keepDifficultyOverridesAfterSection = null!;
         private RoundedButton inheritFromPreviousButton = null!;
         private FormNumberBox sectionCircleSize = null!;
+        private FormCheckBox enableSectionCircleSizeWindow = null!;
+        private FormNumberBox sectionCircleSizeStartTime = null!;
+        private FormNumberBox sectionCircleSizeEndTime = null!;
+        private RoundedButton setSectionCircleSizeStartNowButton = null!;
+        private RoundedButton setSectionCircleSizeEndNowButton = null!;
+        private FormCheckBox enableGradualSectionCircleSizeChange = null!;
+        private FillFlowContainer sectionCircleSizeWindowFields = null!;
         private FormNumberBox sectionApproachRate = null!;
+        private FormCheckBox enableSectionApproachRateWindow = null!;
+        private FormNumberBox sectionApproachRateStartTime = null!;
+        private FormNumberBox sectionApproachRateEndTime = null!;
+        private RoundedButton setSectionApproachRateStartNowButton = null!;
+        private RoundedButton setSectionApproachRateEndNowButton = null!;
+        private FormCheckBox enableGradualSectionApproachRateChange = null!;
+        private FillFlowContainer sectionApproachRateWindowFields = null!;
         private FormNumberBox sectionOverallDifficulty = null!;
+        private FormCheckBox enableSectionOverallDifficultyWindow = null!;
+        private FormNumberBox sectionOverallDifficultyStartTime = null!;
+        private FormNumberBox sectionOverallDifficultyEndTime = null!;
+        private RoundedButton setSectionOverallDifficultyStartNowButton = null!;
+        private RoundedButton setSectionOverallDifficultyEndNowButton = null!;
+        private FormCheckBox enableGradualSectionOverallDifficultyChange = null!;
+        private FillFlowContainer sectionOverallDifficultyWindowFields = null!;
 
         private FormCheckBox forceHidden = null!;
         private FormCheckBox forceNoApproachCircle = null!;
@@ -124,7 +145,9 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox forceFlashlight = null!;
         private FormNumberBox flashlightRadius = null!;
         private FormCheckBox enableGradualFlashlightRadiusChange = null!;
+        private FormCheckBox enableGradualFlashlightFadeIn = null!;
         private FormNumberBox gradualFlashlightRadiusEndTime = null!;
+        private RoundedButton setFlGradualFinishTimeButton = null!;
         private FormCheckBox forceDoubleTime = null!;
         private FormCheckBox showForceMods = null!;
         private FillFlowContainer forceModsFields = null!;
@@ -166,7 +189,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private bool updatingControls;
         private readonly BindableList<HitObject> selectedHitObjects = new BindableList<HitObject>();
-        private readonly ScheduledDelegate[] fadeSchedules = new ScheduledDelegate[11];
+        private readonly ScheduledDelegate[] fadeSchedules = new ScheduledDelegate[15];
 
         public SectionGimmickToolboxGroup()
             : base("Section gimmicks")
@@ -519,15 +542,213 @@ namespace osu.Game.Rulesets.Osu.Edit
                                         Caption = "CS (0-11)",
                                         TabbableContentContainer = this,
                                     },
+                                    enableSectionCircleSizeWindow = new FormCheckBox
+                                    {
+                                        Caption = "CS custom window",
+                                    },
+                                    sectionCircleSizeWindowFields = new FillFlowContainer
+                                    {
+                                        RelativeSizeAxes = Axes.X,
+                                        AutoSizeAxes = Axes.Y,
+                                        Direction = FillDirection.Vertical,
+                                        Spacing = new Vector2(5),
+                                        Children = new Drawable[]
+                                        {
+                                            enableGradualSectionCircleSizeChange = new FormCheckBox
+                                            {
+                                                Caption = "Gradual CS",
+                                            },
+                                            new GridContainer
+                                            {
+                                                RelativeSizeAxes = Axes.X,
+                                                AutoSizeAxes = Axes.Y,
+                                                RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                                                ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                                                Content = new[]
+                                                {
+                                                    new Drawable[]
+                                                    {
+                                                        sectionCircleSizeStartTime = new FormNumberBox(allowDecimals: true)
+                                                        {
+                                                            Caption = "CS start (-1 section start)",
+                                                            TabbableContentContainer = this,
+                                                        },
+                                                        setSectionCircleSizeStartNowButton = new RoundedButton
+                                                        {
+                                                            Text = "Use current time",
+                                                            RelativeSizeAxes = Axes.X,
+                                                            Action = () => mutateSetting(s => s.SectionCircleSizeStartTimeMs = (float)clock.CurrentTime),
+                                                        },
+                                                    }
+                                                }
+                                            },
+                                            new GridContainer
+                                            {
+                                                RelativeSizeAxes = Axes.X,
+                                                AutoSizeAxes = Axes.Y,
+                                                RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                                                ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                                                Content = new[]
+                                                {
+                                                    new Drawable[]
+                                                    {
+                                                        sectionCircleSizeEndTime = new FormNumberBox(allowDecimals: true)
+                                                        {
+                                                            Caption = "CS end (-1 section end)",
+                                                            TabbableContentContainer = this,
+                                                        },
+                                                        setSectionCircleSizeEndNowButton = new RoundedButton
+                                                        {
+                                                            Text = "Use current time",
+                                                            RelativeSizeAxes = Axes.X,
+                                                            Action = () => mutateSetting(s => s.SectionCircleSizeEndTimeMs = (float)clock.CurrentTime),
+                                                        },
+                                                    }
+                                                }
+                                            },
+                                        }
+                                    },
                                     sectionApproachRate = new FormNumberBox(allowDecimals: true)
                                     {
                                         Caption = "AR (<= 11)",
                                         TabbableContentContainer = this,
                                     },
+                                    enableSectionApproachRateWindow = new FormCheckBox
+                                    {
+                                        Caption = "AR custom window",
+                                    },
+                                    sectionApproachRateWindowFields = new FillFlowContainer
+                                    {
+                                        RelativeSizeAxes = Axes.X,
+                                        AutoSizeAxes = Axes.Y,
+                                        Direction = FillDirection.Vertical,
+                                        Spacing = new Vector2(5),
+                                        Children = new Drawable[]
+                                        {
+                                            enableGradualSectionApproachRateChange = new FormCheckBox
+                                            {
+                                                Caption = "Gradual AR",
+                                            },
+                                            new GridContainer
+                                            {
+                                                RelativeSizeAxes = Axes.X,
+                                                AutoSizeAxes = Axes.Y,
+                                                RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                                                ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                                                Content = new[]
+                                                {
+                                                    new Drawable[]
+                                                    {
+                                                        sectionApproachRateStartTime = new FormNumberBox(allowDecimals: true)
+                                                        {
+                                                            Caption = "AR start (-1 section start)",
+                                                            TabbableContentContainer = this,
+                                                        },
+                                                        setSectionApproachRateStartNowButton = new RoundedButton
+                                                        {
+                                                            Text = "Use current time",
+                                                            RelativeSizeAxes = Axes.X,
+                                                            Action = () => mutateSetting(s => s.SectionApproachRateStartTimeMs = (float)clock.CurrentTime),
+                                                        },
+                                                    }
+                                                }
+                                            },
+                                            new GridContainer
+                                            {
+                                                RelativeSizeAxes = Axes.X,
+                                                AutoSizeAxes = Axes.Y,
+                                                RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                                                ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                                                Content = new[]
+                                                {
+                                                    new Drawable[]
+                                                    {
+                                                        sectionApproachRateEndTime = new FormNumberBox(allowDecimals: true)
+                                                        {
+                                                            Caption = "AR end (-1 section end)",
+                                                            TabbableContentContainer = this,
+                                                        },
+                                                        setSectionApproachRateEndNowButton = new RoundedButton
+                                                        {
+                                                            Text = "Use current time",
+                                                            RelativeSizeAxes = Axes.X,
+                                                            Action = () => mutateSetting(s => s.SectionApproachRateEndTimeMs = (float)clock.CurrentTime),
+                                                        },
+                                                    }
+                                                }
+                                            },
+                                        }
+                                    },
                                     sectionOverallDifficulty = new FormNumberBox(allowDecimals: true)
                                     {
                                         Caption = "OD (0-11)",
                                         TabbableContentContainer = this,
+                                    },
+                                    enableSectionOverallDifficultyWindow = new FormCheckBox
+                                    {
+                                        Caption = "OD custom window",
+                                    },
+                                    sectionOverallDifficultyWindowFields = new FillFlowContainer
+                                    {
+                                        RelativeSizeAxes = Axes.X,
+                                        AutoSizeAxes = Axes.Y,
+                                        Direction = FillDirection.Vertical,
+                                        Spacing = new Vector2(5),
+                                        Children = new Drawable[]
+                                        {
+                                            enableGradualSectionOverallDifficultyChange = new FormCheckBox
+                                            {
+                                                Caption = "Gradual OD",
+                                            },
+                                            new GridContainer
+                                            {
+                                                RelativeSizeAxes = Axes.X,
+                                                AutoSizeAxes = Axes.Y,
+                                                RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                                                ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                                                Content = new[]
+                                                {
+                                                    new Drawable[]
+                                                    {
+                                                        sectionOverallDifficultyStartTime = new FormNumberBox(allowDecimals: true)
+                                                        {
+                                                            Caption = "OD start (-1 section start)",
+                                                            TabbableContentContainer = this,
+                                                        },
+                                                        setSectionOverallDifficultyStartNowButton = new RoundedButton
+                                                        {
+                                                            Text = "Use current time",
+                                                            RelativeSizeAxes = Axes.X,
+                                                            Action = () => mutateSetting(s => s.SectionOverallDifficultyStartTimeMs = (float)clock.CurrentTime),
+                                                        },
+                                                    }
+                                                }
+                                            },
+                                            new GridContainer
+                                            {
+                                                RelativeSizeAxes = Axes.X,
+                                                AutoSizeAxes = Axes.Y,
+                                                RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                                                ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                                                Content = new[]
+                                                {
+                                                    new Drawable[]
+                                                    {
+                                                        sectionOverallDifficultyEndTime = new FormNumberBox(allowDecimals: true)
+                                                        {
+                                                            Caption = "OD end (-1 section end)",
+                                                            TabbableContentContainer = this,
+                                                        },
+                                                        setSectionOverallDifficultyEndNowButton = new RoundedButton
+                                                        {
+                                                            Text = "Use current time",
+                                                            RelativeSizeAxes = Axes.X,
+                                                            Action = () => mutateSetting(s => s.SectionOverallDifficultyEndTimeMs = (float)clock.CurrentTime),
+                                                        },
+                                                    }
+                                                }
+                                            },
+                                        }
                                     },
                                     allowUnsafeDifficultyOverrideValues = new FormCheckBox
                                     {
@@ -613,12 +834,35 @@ namespace osu.Game.Rulesets.Osu.Edit
                                     },
                                     enableGradualFlashlightRadiusChange = new FormCheckBox
                                     {
-                                        Caption = "Gradual FL radius",
+                                        Caption = "Gradually shrink to radius",
                                     },
-                                    gradualFlashlightRadiusEndTime = new FormNumberBox(allowDecimals: true)
+                                    enableGradualFlashlightFadeIn = new FormCheckBox
                                     {
-                                        Caption = "FL gradual finish time (ms)",
-                                        TabbableContentContainer = this,
+                                        Caption = "Gradually fade in",
+                                    },
+                                    new GridContainer
+                                    {
+                                        RelativeSizeAxes = Axes.X,
+                                        AutoSizeAxes = Axes.Y,
+                                        RowDimensions = new[] { new Dimension(GridSizeMode.AutoSize) },
+                                        ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                                        Content = new[]
+                                        {
+                                            new Drawable[]
+                                            {
+                                                gradualFlashlightRadiusEndTime = new FormNumberBox(allowDecimals: true)
+                                                {
+                                                    Caption = "FL gradual finish time (ms)",
+                                                    TabbableContentContainer = this,
+                                                },
+                                                setFlGradualFinishTimeButton = new RoundedButton
+                                                {
+                                                    Text = "Use current time",
+                                                    RelativeSizeAxes = Axes.X,
+                                                    Action = () => mutateSetting(s => s.GradualFlashlightRadiusEndTimeMs = (float)clock.CurrentTime),
+                                                },
+                                            }
+                                        }
                                     },
                                     forceDoubleTime = new FormCheckBox
                                     {
@@ -886,16 +1130,29 @@ namespace osu.Game.Rulesets.Osu.Edit
             bindFloatSetting(gradualDifficultyChangeEndTime, (s, v) => s.GradualDifficultyChangeEndTimeMs = v, v => Math.Max(0f, v));
             keepDifficultyOverridesAfterSection.Current.BindValueChanged(v => mutateSetting(s => s.KeepDifficultyOverridesAfterSection = v.NewValue));
             bindFloatSetting(sectionCircleSize, (s, v) => s.SectionCircleSize = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampCircleSize(v));
+            enableSectionCircleSizeWindow.Current.BindValueChanged(v => mutateSetting(s => s.EnableSectionCircleSizeWindow = v.NewValue));
+            bindFloatSettingOnCommitOnly(sectionCircleSizeStartTime, (s, v) => s.SectionCircleSizeStartTimeMs = v, v => v < -1 ? -1 : v);
+            bindFloatSettingOnCommitOnly(sectionCircleSizeEndTime, (s, v) => s.SectionCircleSizeEndTimeMs = v, v => v < -1 ? -1 : v);
+            enableGradualSectionCircleSizeChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualSectionCircleSizeChange = v.NewValue));
             bindFloatSetting(sectionApproachRate, (s, v) => s.SectionApproachRate = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampApproachRate(v));
+            enableSectionApproachRateWindow.Current.BindValueChanged(v => mutateSetting(s => s.EnableSectionApproachRateWindow = v.NewValue));
+            bindFloatSettingOnCommitOnly(sectionApproachRateStartTime, (s, v) => s.SectionApproachRateStartTimeMs = v, v => v < -1 ? -1 : v);
+            bindFloatSettingOnCommitOnly(sectionApproachRateEndTime, (s, v) => s.SectionApproachRateEndTimeMs = v, v => v < -1 ? -1 : v);
+            enableGradualSectionApproachRateChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualSectionApproachRateChange = v.NewValue));
             bindFloatSetting(sectionOverallDifficulty, (s, v) => s.SectionOverallDifficulty = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampOverallDifficulty(v));
+            enableSectionOverallDifficultyWindow.Current.BindValueChanged(v => mutateSetting(s => s.EnableSectionOverallDifficultyWindow = v.NewValue));
+            bindFloatSettingOnCommitOnly(sectionOverallDifficultyStartTime, (s, v) => s.SectionOverallDifficultyStartTimeMs = v, v => v < -1 ? -1 : v);
+            bindFloatSettingOnCommitOnly(sectionOverallDifficultyEndTime, (s, v) => s.SectionOverallDifficultyEndTimeMs = v, v => v < -1 ? -1 : v);
+            enableGradualSectionOverallDifficultyChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualSectionOverallDifficultyChange = v.NewValue));
 
             forceHidden.Current.BindValueChanged(v => mutateSetting(s => s.ForceHidden = v.NewValue));
             forceNoApproachCircle.Current.BindValueChanged(v => mutateSetting(s => s.ForceNoApproachCircle = v.NewValue));
             forceHardRock.Current.BindValueChanged(v => mutateSetting(s => s.ForceHardRock = v.NewValue));
             forceFlashlight.Current.BindValueChanged(v => mutateSetting(s => s.ForceFlashlight = v.NewValue));
-            bindFloatSetting(flashlightRadius, (s, v) => s.FlashlightRadius = v, v => Math.Clamp(v, 20f, 400f));
+            bindFloatSettingOnCommitOnly(flashlightRadius, (s, v) => s.FlashlightRadius = v, v => Math.Clamp(v, 20f, 400f));
             enableGradualFlashlightRadiusChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualFlashlightRadiusChange = v.NewValue));
             bindFloatSetting(gradualFlashlightRadiusEndTime, (s, v) => s.GradualFlashlightRadiusEndTimeMs = v, v => Math.Max(0f, v));
+            enableGradualFlashlightFadeIn.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualFlashlightFadeIn = v.NewValue));
             forceDoubleTime.Current.BindValueChanged(v => mutateSetting(s => s.ForceDoubleTime = v.NewValue));
             showForceMods.Current.BindValueChanged(_ => updateGroupVisibility());
 
@@ -1045,8 +1302,20 @@ namespace osu.Game.Rulesets.Osu.Edit
                 gradualDifficultyChangeEndTime.Current.Value = formatFloat(settings.GradualDifficultyChangeEndTimeMs);
                 keepDifficultyOverridesAfterSection.Current.Value = settings.KeepDifficultyOverridesAfterSection;
                 sectionCircleSize.Current.Value = formatFloat(settings.SectionCircleSize);
+                enableSectionCircleSizeWindow.Current.Value = settings.EnableSectionCircleSizeWindow;
+                sectionCircleSizeStartTime.Current.Value = formatOptionalWindowTime(settings.SectionCircleSizeStartTimeMs);
+                sectionCircleSizeEndTime.Current.Value = formatOptionalWindowTime(settings.SectionCircleSizeEndTimeMs);
+                enableGradualSectionCircleSizeChange.Current.Value = settings.EnableGradualSectionCircleSizeChange;
                 sectionApproachRate.Current.Value = formatFloat(settings.SectionApproachRate);
+                enableSectionApproachRateWindow.Current.Value = settings.EnableSectionApproachRateWindow;
+                sectionApproachRateStartTime.Current.Value = formatOptionalWindowTime(settings.SectionApproachRateStartTimeMs);
+                sectionApproachRateEndTime.Current.Value = formatOptionalWindowTime(settings.SectionApproachRateEndTimeMs);
+                enableGradualSectionApproachRateChange.Current.Value = settings.EnableGradualSectionApproachRateChange;
                 sectionOverallDifficulty.Current.Value = formatFloat(settings.SectionOverallDifficulty);
+                enableSectionOverallDifficultyWindow.Current.Value = settings.EnableSectionOverallDifficultyWindow;
+                sectionOverallDifficultyStartTime.Current.Value = formatOptionalWindowTime(settings.SectionOverallDifficultyStartTimeMs);
+                sectionOverallDifficultyEndTime.Current.Value = formatOptionalWindowTime(settings.SectionOverallDifficultyEndTimeMs);
+                enableGradualSectionOverallDifficultyChange.Current.Value = settings.EnableGradualSectionOverallDifficultyChange;
 
                 forceHidden.Current.Value = settings.ForceHidden;
                 forceNoApproachCircle.Current.Value = settings.ForceNoApproachCircle;
@@ -1054,6 +1323,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 forceFlashlight.Current.Value = settings.ForceFlashlight;
                 flashlightRadius.Current.Value = formatFloat(settings.FlashlightRadius);
                 enableGradualFlashlightRadiusChange.Current.Value = settings.EnableGradualFlashlightRadiusChange;
+                enableGradualFlashlightFadeIn.Current.Value = settings.EnableGradualFlashlightFadeIn;
                 gradualFlashlightRadiusEndTime.Current.Value = formatFloat(settings.GradualFlashlightRadiusEndTimeMs);
                 forceDoubleTime.Current.Value = settings.ForceDoubleTime;
                 forceTransform.Current.Value = settings.ForceTransform;
@@ -1124,6 +1394,18 @@ namespace osu.Game.Rulesets.Osu.Edit
             scheduleFade(setGradualFinishTimeButton, enableGradualDifficultyChange.Current.Value, 7);
             setGradualFinishTimeButton.AlwaysPresent = enableGradualDifficultyChange.Current.Value;
 
+            bool showCsWindow = enableDifficultyOverrides.Current.Value && enableSectionCircleSizeWindow.Current.Value;
+            scheduleFade(sectionCircleSizeWindowFields, showCsWindow, 12);
+            sectionCircleSizeWindowFields.AlwaysPresent = showCsWindow;
+
+            bool showArWindow = enableDifficultyOverrides.Current.Value && enableSectionApproachRateWindow.Current.Value;
+            scheduleFade(sectionApproachRateWindowFields, showArWindow, 13);
+            sectionApproachRateWindowFields.AlwaysPresent = showArWindow;
+
+            bool showOdWindow = enableDifficultyOverrides.Current.Value && enableSectionOverallDifficultyWindow.Current.Value;
+            scheduleFade(sectionOverallDifficultyWindowFields, showOdWindow, 14);
+            sectionOverallDifficultyWindowFields.AlwaysPresent = showOdWindow;
+
             scheduleFade(forceModsFields, showForceMods.Current.Value, 8);
             forceModsFields.AlwaysPresent = showForceMods.Current.Value;
 
@@ -1133,6 +1415,9 @@ namespace osu.Game.Rulesets.Osu.Edit
             bool showGradualFlRadius = showForceMods.Current.Value && forceFlashlight.Current.Value && enableGradualFlashlightRadiusChange.Current.Value;
             scheduleFade(gradualFlashlightRadiusEndTime, showGradualFlRadius, 10);
             gradualFlashlightRadiusEndTime.AlwaysPresent = showGradualFlRadius;
+
+            scheduleFade(setFlGradualFinishTimeButton, showGradualFlRadius, 11);
+            setFlGradualFinishTimeButton.AlwaysPresent = showGradualFlRadius;
         }
 
         private void scheduleFade(Drawable drawable, bool visible, int slot)
@@ -1222,6 +1507,9 @@ namespace osu.Game.Rulesets.Osu.Edit
             box.OnCommit += (_, _) => updateClampedFloatSetting(box, mutation, clamp);
             box.Current.BindValueChanged(_ => updateClampedFloatSetting(box, mutation, clamp));
         }
+
+        private void bindFloatSettingOnCommitOnly(FormNumberBox box, Action<SectionGimmickSettings, float> mutation, Func<float, float> clamp)
+            => box.OnCommit += (_, _) => updateClampedFloatSetting(box, mutation, clamp);
 
         private void bindIntSetting(FormNumberBox box, Action<SectionGimmickSettings, int> mutation, Func<int, int> clamp)
         {
@@ -1335,6 +1623,9 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private static string formatFloat(float value)
             => float.IsNaN(value) ? string.Empty : value.ToString(CultureInfo.InvariantCulture);
+
+        private static string formatOptionalWindowTime(float value)
+            => value < 0 ? "-1" : formatFloat(value);
 
         private static string formatDouble(double value)
             => double.IsNaN(value) ? string.Empty : value.ToString(CultureInfo.InvariantCulture);

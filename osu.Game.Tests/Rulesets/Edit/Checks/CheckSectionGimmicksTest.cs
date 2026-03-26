@@ -253,6 +253,51 @@ namespace osu.Game.Tests.Rulesets.Edit.Checks
             Assert.That(issues[0].ToString(), Does.Contain("gradual flashlight radius").IgnoreCase);
         }
 
+        [Test]
+        public void TestNoIssueForGradualFlashlightFadeInWithoutGradualRadius()
+        {
+            var beatmap = new Beatmap();
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    ForceFlashlight = true,
+                    FlashlightRadius = 120,
+                    EnableGradualFlashlightFadeIn = true,
+                }
+            });
+
+            var issues = new CheckSectionGimmicks().Run(createContext(beatmap)).ToList();
+
+            Assert.That(issues, Is.Empty);
+        }
+
+        [Test]
+        public void TestNoIssueForGradualFlashlightRadiusWithFadeIn()
+        {
+            var beatmap = new Beatmap();
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    ForceFlashlight = true,
+                    FlashlightRadius = 120,
+                    EnableGradualFlashlightRadiusChange = true,
+                    EnableGradualFlashlightFadeIn = true,
+                }
+            });
+
+            var issues = new CheckSectionGimmicks().Run(createContext(beatmap)).ToList();
+
+            Assert.That(issues, Is.Empty);
+        }
+
         private static BeatmapVerifierContext createContext(IBeatmap beatmap)
         {
             var working = new TestWorkingBeatmap(beatmap.BeatmapInfo, beatmap);

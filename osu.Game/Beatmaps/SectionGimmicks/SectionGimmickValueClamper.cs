@@ -34,6 +34,12 @@ namespace osu.Game.Beatmaps.SectionGimmicks
             }
 
             settings.GradualDifficultyChangeEndTimeMs = clampMin(settings.GradualDifficultyChangeEndTimeMs, 0);
+            settings.SectionCircleSizeStartTimeMs = clampMin(settings.SectionCircleSizeStartTimeMs, -1);
+            settings.SectionCircleSizeEndTimeMs = clampMin(settings.SectionCircleSizeEndTimeMs, -1);
+            settings.SectionApproachRateStartTimeMs = clampMin(settings.SectionApproachRateStartTimeMs, -1);
+            settings.SectionApproachRateEndTimeMs = clampMin(settings.SectionApproachRateEndTimeMs, -1);
+            settings.SectionOverallDifficultyStartTimeMs = clampMin(settings.SectionOverallDifficultyStartTimeMs, -1);
+            settings.SectionOverallDifficultyEndTimeMs = clampMin(settings.SectionOverallDifficultyEndTimeMs, -1);
             settings.FlashlightRadius = clampMinMax(settings.FlashlightRadius, 20f, 400f);
             settings.GradualFlashlightRadiusEndTimeMs = clampMin(settings.GradualFlashlightRadiusEndTimeMs, 0);
 

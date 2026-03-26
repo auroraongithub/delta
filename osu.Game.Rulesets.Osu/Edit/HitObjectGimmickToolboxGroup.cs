@@ -158,7 +158,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             forceHidden.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceHidden = value));
             forceHardRock.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceHardRock = value));
             forceFlashlight.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceFlashlight = value));
-            bindFloat(flashlightRadius, (s, value) => s.FlashlightRadius = value, v => Math.Clamp(v, 20f, 400f));
+            bindFloatOnCommitOnly(flashlightRadius, (s, value) => s.FlashlightRadius = value, v => Math.Clamp(v, 20f, 400f));
             forceNoApproachCircle.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceNoApproachCircle = value));
 
             bindFloat(hp300, (s, value) => s.HP300 = value, v => Math.Clamp(v, -2f, 2f));
@@ -184,6 +184,9 @@ namespace osu.Game.Rulesets.Osu.Edit
             source.OnCommit += (_, _) => setFloat(source, setter, clamp);
             source.Current.BindValueChanged(_ => setFloat(source, setter, clamp));
         }
+
+        private void bindFloatOnCommitOnly(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter, Func<float, float> clamp)
+            => source.OnCommit += (_, _) => setFloat(source, setter, clamp);
 
         private void bindInt(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, int> setter, Func<int, int> clamp)
         {

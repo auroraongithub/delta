@@ -49,8 +49,20 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         public float GradualDifficultyChangeEndTimeMs { get; set; } = float.NaN;
         public bool KeepDifficultyOverridesAfterSection { get; set; }
         public float SectionCircleSize { get; set; } = float.NaN;
+        public bool EnableSectionCircleSizeWindow { get; set; }
+        public float SectionCircleSizeStartTimeMs { get; set; } = -1;
+        public float SectionCircleSizeEndTimeMs { get; set; } = -1;
+        public bool EnableGradualSectionCircleSizeChange { get; set; }
         public float SectionApproachRate { get; set; } = float.NaN;
+        public bool EnableSectionApproachRateWindow { get; set; }
+        public float SectionApproachRateStartTimeMs { get; set; } = -1;
+        public float SectionApproachRateEndTimeMs { get; set; } = -1;
+        public bool EnableGradualSectionApproachRateChange { get; set; }
         public float SectionOverallDifficulty { get; set; } = float.NaN;
+        public bool EnableSectionOverallDifficultyWindow { get; set; }
+        public float SectionOverallDifficultyStartTimeMs { get; set; } = -1;
+        public float SectionOverallDifficultyEndTimeMs { get; set; } = -1;
+        public bool EnableGradualSectionOverallDifficultyChange { get; set; }
 
         public bool ForceHidden { get; set; }
         public bool ForceNoApproachCircle { get; set; }
@@ -58,6 +70,7 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         public bool ForceFlashlight { get; set; }
         public float FlashlightRadius { get; set; } = float.NaN;
         public bool EnableGradualFlashlightRadiusChange { get; set; }
+        public bool EnableGradualFlashlightFadeIn { get; set; }
         public float GradualFlashlightRadiusEndTimeMs { get; set; } = float.NaN;
         public bool ForceDoubleTime { get; set; }
         public bool ForceSingleTap { get; set; }

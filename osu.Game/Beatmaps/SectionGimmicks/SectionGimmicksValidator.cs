@@ -97,6 +97,10 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                                 throw new InvalidOperationException($"Section {section.Id}: GradualDifficultyChangeEndTimeMs must be within section range.");
                         }
                     }
+
+                    validateValueWindow(section, settings.SectionCircleSize, settings.EnableSectionCircleSizeWindow, settings.SectionCircleSizeStartTimeMs, settings.SectionCircleSizeEndTimeMs, settings.EnableGradualSectionCircleSizeChange, "SectionCircleSize");
+                    validateValueWindow(section, settings.SectionApproachRate, settings.EnableSectionApproachRateWindow, settings.SectionApproachRateStartTimeMs, settings.SectionApproachRateEndTimeMs, settings.EnableGradualSectionApproachRateChange, "SectionApproachRate");
+                    validateValueWindow(section, settings.SectionOverallDifficulty, settings.EnableSectionOverallDifficultyWindow, settings.SectionOverallDifficultyStartTimeMs, settings.SectionOverallDifficultyEndTimeMs, settings.EnableGradualSectionOverallDifficultyChange, "SectionOverallDifficulty");
                 }
 
                 if (!float.IsNaN(settings.FlashlightRadius) && (settings.FlashlightRadius < 20 || settings.FlashlightRadius > 400))
@@ -118,6 +122,12 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                         if (section.EndTime >= 0 && settings.GradualFlashlightRadiusEndTimeMs > section.EndTime)
                             throw new InvalidOperationException($"Section {section.Id}: GradualFlashlightRadiusEndTimeMs must be within section range.");
                     }
+                }
+
+                if (settings.EnableGradualFlashlightFadeIn)
+                {
+                    if (!settings.ForceFlashlight)
+                        throw new InvalidOperationException($"Section {section.Id}: gradual flashlight fade-in requires ForceFlashlight.");
                 }
 
                 if (settings.EnableGradualDifficultyChange && !settings.EnableDifficultyOverrides)
@@ -152,6 +162,30 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         {
             if (float.IsNaN(value))
                 throw new InvalidOperationException($"Section {id}: {key} is required.");
+        }
+
+        private static void validateValueWindow(SectionGimmickSection section, float value, bool enabled, float start, float end, bool gradualEnabled, string name)
+        {
+            if (enabled && float.IsNaN(value))
+                throw new InvalidOperationException($"Section {section.Id}: {name} window requires {name} value.");
+
+            if (gradualEnabled && float.IsNaN(value))
+                throw new InvalidOperationException($"Section {section.Id}: gradual {name} requires {name} value.");
+
+            if (!enabled)
+                return;
+
+            if (start >= 0 && start < section.StartTime)
+                throw new InvalidOperationException($"Section {section.Id}: {name} start time must be >= section start.");
+
+            if (end >= 0)
+            {
+                if (section.EndTime >= 0 && end > section.EndTime)
+                    throw new InvalidOperationException($"Section {section.Id}: {name} end time must be within section range.");
+
+                if (start >= 0 && start > end)
+                    throw new InvalidOperationException($"Section {section.Id}: {name} start time cannot be after end time.");
+            }
         }
     }
 }
