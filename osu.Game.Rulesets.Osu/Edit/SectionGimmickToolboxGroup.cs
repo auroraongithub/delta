@@ -12,6 +12,8 @@ using osu.Framework.Localisation;
 using osu.Framework.Threading;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.SectionGimmicks;
+using osu.Game.Overlays;
+using osu.Game.Overlays.Notifications;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
@@ -38,6 +40,9 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         [Resolved]
         private EditorBeatmap editorBeatmap { get; set; } = null!;
+
+        [Resolved(canBeNull: true)]
+        private INotificationOverlay? notifications { get; set; }
 
         [Resolved(canBeNull: true)]
         private Editor? editor { get; set; }
@@ -103,6 +108,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private FormCheckBox enableDifficultyOverrides = null!;
         private FillFlowContainer difficultyOverrideFields = null!;
+        private FormCheckBox allowUnsafeDifficultyOverrideValues = null!;
         private FormCheckBox difficultyOverrideStartWithBeatmapValues = null!;
         private FormCheckBox enableGradualDifficultyChange = null!;
         private FormNumberBox gradualDifficultyChangeEndTime = null!;
@@ -116,9 +122,43 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox forceNoApproachCircle = null!;
         private FormCheckBox forceHardRock = null!;
         private FormCheckBox forceFlashlight = null!;
+        private FormNumberBox flashlightRadius = null!;
+        private FormCheckBox enableGradualFlashlightRadiusChange = null!;
+        private FormNumberBox gradualFlashlightRadiusEndTime = null!;
         private FormCheckBox forceDoubleTime = null!;
         private FormCheckBox showForceMods = null!;
         private FillFlowContainer forceModsFields = null!;
+
+        private FormCheckBox showFunMods = null!;
+        private FillFlowContainer funModsFields = null!;
+        private FormCheckBox forceTransform = null!;
+        private FormCheckBox forceWiggle = null!;
+        private FormNumberBox wiggleStrength = null!;
+        private FormCheckBox forceSpinIn = null!;
+        private FormCheckBox forceGrow = null!;
+        private FormNumberBox growStartScale = null!;
+        private FormCheckBox forceDeflate = null!;
+        private FormNumberBox deflateStartScale = null!;
+        private FormCheckBox forceBarrelRoll = null!;
+        private FormNumberBox barrelRollSpinSpeed = null!;
+        private FormCheckBox forceApproachDifferent = null!;
+        private FormNumberBox approachDifferentScale = null!;
+        private FormCheckBox forceMuted = null!;
+        private FormNumberBox mutedMuteComboCount = null!;
+        private FormCheckBox forceNoScope = null!;
+        private FormNumberBox noScopeHiddenComboCount = null!;
+        private FormCheckBox forceMagnetised = null!;
+        private FormNumberBox magnetisedAttractionStrength = null!;
+        private FormCheckBox forceRepel = null!;
+        private FormNumberBox repelRepulsionStrength = null!;
+        private FormCheckBox forceFreezeFrame = null!;
+        private FormCheckBox forceBubbles = null!;
+        private FormCheckBox forceSynesthesia = null!;
+        private FormCheckBox forceDepth = null!;
+        private FormNumberBox depthMaxDepth = null!;
+        private FormCheckBox forceBloom = null!;
+        private FormNumberBox bloomMaxSizeComboCount = null!;
+        private FormNumberBox bloomMaxCursorSize = null!;
 
         private FormEnumDropdown<SectionGimmickApplyScope> applyScopeDropdown = null!;
 
@@ -126,7 +166,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private bool updatingControls;
         private readonly BindableList<HitObject> selectedHitObjects = new BindableList<HitObject>();
-        private readonly ScheduledDelegate[] fadeSchedules = new ScheduledDelegate[9];
+        private readonly ScheduledDelegate[] fadeSchedules = new ScheduledDelegate[11];
 
         public SectionGimmickToolboxGroup()
             : base("Section gimmicks")
@@ -489,6 +529,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                                         Caption = "OD (0-11)",
                                         TabbableContentContainer = this,
                                     },
+                                    allowUnsafeDifficultyOverrideValues = new FormCheckBox
+                                    {
+                                        Caption = "Allow values past limits (unsafe)",
+                                    },
                                     difficultyOverrideStartWithBeatmapValues = new FormCheckBox
                                     {
                                         Caption = "Start with beatmap values",
@@ -562,9 +606,162 @@ namespace osu.Game.Rulesets.Osu.Edit
                                     {
                                         Caption = "Force FL",
                                     },
+                                    flashlightRadius = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "FL radius (20-400)",
+                                        TabbableContentContainer = this,
+                                    },
+                                    enableGradualFlashlightRadiusChange = new FormCheckBox
+                                    {
+                                        Caption = "Gradual FL radius",
+                                    },
+                                    gradualFlashlightRadiusEndTime = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "FL gradual finish time (ms)",
+                                        TabbableContentContainer = this,
+                                    },
                                     forceDoubleTime = new FormCheckBox
                                     {
                                         Caption = "Force DT",
+                                    },
+                                }
+                            },
+
+                            showFunMods = new FormCheckBox
+                            {
+                                Caption = "Fun mods",
+                            },
+                            funModsFields = new FillFlowContainer
+                            {
+                                RelativeSizeAxes = Axes.X,
+                                AutoSizeAxes = Axes.Y,
+                                Direction = FillDirection.Vertical,
+                                Spacing = new Vector2(5),
+                                Children = new Drawable[]
+                                {
+                                    forceTransform = new FormCheckBox
+                                    {
+                                        Caption = "Force Transform",
+                                    },
+                                    forceWiggle = new FormCheckBox
+                                    {
+                                        Caption = "Force Wiggle",
+                                    },
+                                    wiggleStrength = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Wiggle strength",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceSpinIn = new FormCheckBox
+                                    {
+                                        Caption = "Force Spin In",
+                                    },
+                                    forceGrow = new FormCheckBox
+                                    {
+                                        Caption = "Force Grow",
+                                    },
+                                    growStartScale = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Grow start scale",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceDeflate = new FormCheckBox
+                                    {
+                                        Caption = "Force Deflate",
+                                    },
+                                    deflateStartScale = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Deflate start scale",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceBarrelRoll = new FormCheckBox
+                                    {
+                                        Caption = "Force Barrel Roll",
+                                    },
+                                    barrelRollSpinSpeed = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Barrel roll spin speed",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceApproachDifferent = new FormCheckBox
+                                    {
+                                        Caption = "Force Approach Different",
+                                    },
+                                    approachDifferentScale = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Approach different scale",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceMuted = new FormCheckBox
+                                    {
+                                        Caption = "Force Muted",
+                                    },
+                                    mutedMuteComboCount = new FormNumberBox
+                                    {
+                                        Caption = "Muted combo count",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceNoScope = new FormCheckBox
+                                    {
+                                        Caption = "Force No Scope",
+                                    },
+                                    noScopeHiddenComboCount = new FormNumberBox
+                                    {
+                                        Caption = "No scope hidden combo count",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceMagnetised = new FormCheckBox
+                                    {
+                                        Caption = "Force Magnetised",
+                                    },
+                                    magnetisedAttractionStrength = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Magnetised attraction",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceRepel = new FormCheckBox
+                                    {
+                                        Caption = "Force Repel",
+                                    },
+                                    repelRepulsionStrength = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Repel strength",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceFreezeFrame = new FormCheckBox
+                                    {
+                                        Caption = "Force Freeze Frame",
+                                    },
+                                    forceBubbles = new FormCheckBox
+                                    {
+                                        Caption = "Force Bubbles",
+                                    },
+                                    forceSynesthesia = new FormCheckBox
+                                    {
+                                        Caption = "Force Synesthesia",
+                                    },
+                                    forceDepth = new FormCheckBox
+                                    {
+                                        Caption = "Force Depth",
+                                    },
+                                    depthMaxDepth = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Depth max",
+                                        TabbableContentContainer = this,
+                                    },
+                                    forceBloom = new FormCheckBox
+                                    {
+                                        Caption = "Force Bloom",
+                                    },
+                                    bloomMaxSizeComboCount = new FormNumberBox
+                                    {
+                                        Caption = "Bloom max size combo",
+                                        TabbableContentContainer = this,
+                                    },
+                                    bloomMaxCursorSize = new FormNumberBox(allowDecimals: true)
+                                    {
+                                        Caption = "Bloom max cursor size",
+                                        TabbableContentContainer = this,
                                     },
                                 }
                             },
@@ -645,12 +842,12 @@ namespace osu.Game.Rulesets.Osu.Edit
             noDrain.Current.BindValueChanged(v => mutateSetting(s => s.NoDrain = v.NewValue));
             reverseHp.Current.BindValueChanged(v => mutateSetting(s => s.ReverseHP = v.NewValue));
 
-            hp300.OnCommit += (_, _) => updateFloatSetting(hp300, (s, v) => s.HP300 = v);
-            hpStart.OnCommit += (_, _) => updateFloatSetting(hpStart, (s, v) => s.HPStart = v);
-            hpCap.OnCommit += (_, _) => updateFloatSetting(hpCap, (s, v) => s.HPCap = v);
-            hp100.OnCommit += (_, _) => updateFloatSetting(hp100, (s, v) => s.HP100 = v);
-            hp50.OnCommit += (_, _) => updateFloatSetting(hp50, (s, v) => s.HP50 = v);
-            hpMiss.OnCommit += (_, _) => updateFloatSetting(hpMiss, (s, v) => s.HPMiss = v);
+            bindFloatSetting(hp300, (s, v) => s.HP300 = v, v => Math.Clamp(v, -2f, 2f));
+            bindFloatSetting(hpStart, (s, v) => s.HPStart = v, v => Math.Clamp(v, 0f, 1f));
+            bindFloatSetting(hpCap, (s, v) => s.HPCap = v, v => Math.Clamp(v, 0f, 1f));
+            bindFloatSetting(hp100, (s, v) => s.HP100 = v, v => Math.Clamp(v, -2f, 2f));
+            bindFloatSetting(hp50, (s, v) => s.HP50 = v, v => Math.Clamp(v, -2f, 2f));
+            bindFloatSetting(hpMiss, (s, v) => s.HPMiss = v, v => Math.Clamp(v, -2f, 2f));
             hp300AffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.HP300AffectsSliderEndsAndTicks = v.NewValue));
             hp100AffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.HP100AffectsSliderEndsAndTicks = v.NewValue));
             hp50AffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.HP50AffectsSliderEndsAndTicks = v.NewValue));
@@ -660,10 +857,10 @@ namespace osu.Game.Rulesets.Osu.Edit
             enableNoMiss.Current.BindValueChanged(v => mutateSetting(s => s.EnableNoMiss = v.NewValue));
 
             enableCountLimits.Current.BindValueChanged(v => mutateSetting(s => s.EnableCountLimits = v.NewValue));
-            max300s.OnCommit += (_, _) => updateIntSetting(max300s, (s, v) => s.Max300s = v);
-            max100s.OnCommit += (_, _) => updateIntSetting(max100s, (s, v) => s.Max100s = v);
-            max50s.OnCommit += (_, _) => updateIntSetting(max50s, (s, v) => s.Max50s = v);
-            maxMisses.OnCommit += (_, _) => updateIntSetting(maxMisses, (s, v) => s.MaxMisses = v);
+            bindIntSetting(max300s, (s, v) => s.Max300s = v, v => Math.Max(-1, v));
+            bindIntSetting(max100s, (s, v) => s.Max100s = v, v => Math.Max(-1, v));
+            bindIntSetting(max50s, (s, v) => s.Max50s = v, v => Math.Max(-1, v));
+            bindIntSetting(maxMisses, (s, v) => s.MaxMisses = v, v => Math.Max(-1, v));
             max300sAffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.Max300sAffectsSliderEndsAndTicks = v.NewValue));
             max100sAffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.Max100sAffectsSliderEndsAndTicks = v.NewValue));
             max50sAffectsSliderEndsAndTicks.Current.BindValueChanged(v => mutateSetting(s => s.Max50sAffectsSliderEndsAndTicks = v.NewValue));
@@ -673,24 +870,64 @@ namespace osu.Game.Rulesets.Osu.Edit
             enableNoMissedSliderEnd.Current.BindValueChanged(v => mutateSetting(s => s.EnableNoMissedSliderEnd = v.NewValue));
 
             enableGreatOffsetPenalty.Current.BindValueChanged(v => mutateSetting(s => s.EnableGreatOffsetPenalty = v.NewValue));
-            greatOffsetThreshold.OnCommit += (_, _) => updateFloatSetting(greatOffsetThreshold, (s, v) => s.GreatOffsetThresholdMs = v);
-            greatOffsetPenaltyHp.OnCommit += (_, _) => updateFloatSetting(greatOffsetPenaltyHp, (s, v) => s.GreatOffsetPenaltyHP = v);
+            bindFloatSetting(greatOffsetThreshold, (s, v) => s.GreatOffsetThresholdMs = v, v => Math.Max(0f, v));
+            bindFloatSetting(greatOffsetPenaltyHp, (s, v) => s.GreatOffsetPenaltyHP = v, v => Math.Min(0f, v));
 
             enableDifficultyOverrides.Current.BindValueChanged(v => mutateSetting(s => s.EnableDifficultyOverrides = v.NewValue));
+            allowUnsafeDifficultyOverrideValues.Current.BindValueChanged(v =>
+            {
+                if (!updatingControls && v.NewValue)
+                    postUnsafeDifficultyWarning();
+
+                mutateSetting(s => s.AllowUnsafeDifficultyOverrideValues = v.NewValue);
+            });
             difficultyOverrideStartWithBeatmapValues.Current.BindValueChanged(v => mutateSetting(s => s.DifficultyOverrideStartWithBeatmapValues = v.NewValue));
             enableGradualDifficultyChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualDifficultyChange = v.NewValue));
-            gradualDifficultyChangeEndTime.OnCommit += (_, _) => updateFloatSetting(gradualDifficultyChangeEndTime, (s, v) => s.GradualDifficultyChangeEndTimeMs = v);
+            bindFloatSetting(gradualDifficultyChangeEndTime, (s, v) => s.GradualDifficultyChangeEndTimeMs = v, v => Math.Max(0f, v));
             keepDifficultyOverridesAfterSection.Current.BindValueChanged(v => mutateSetting(s => s.KeepDifficultyOverridesAfterSection = v.NewValue));
-            sectionCircleSize.OnCommit += (_, _) => updateFloatSetting(sectionCircleSize, (s, v) => s.SectionCircleSize = v);
-            sectionApproachRate.OnCommit += (_, _) => updateFloatSetting(sectionApproachRate, (s, v) => s.SectionApproachRate = v);
-            sectionOverallDifficulty.OnCommit += (_, _) => updateFloatSetting(sectionOverallDifficulty, (s, v) => s.SectionOverallDifficulty = v);
+            bindFloatSetting(sectionCircleSize, (s, v) => s.SectionCircleSize = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampCircleSize(v));
+            bindFloatSetting(sectionApproachRate, (s, v) => s.SectionApproachRate = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampApproachRate(v));
+            bindFloatSetting(sectionOverallDifficulty, (s, v) => s.SectionOverallDifficulty = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampOverallDifficulty(v));
 
             forceHidden.Current.BindValueChanged(v => mutateSetting(s => s.ForceHidden = v.NewValue));
             forceNoApproachCircle.Current.BindValueChanged(v => mutateSetting(s => s.ForceNoApproachCircle = v.NewValue));
             forceHardRock.Current.BindValueChanged(v => mutateSetting(s => s.ForceHardRock = v.NewValue));
             forceFlashlight.Current.BindValueChanged(v => mutateSetting(s => s.ForceFlashlight = v.NewValue));
+            bindFloatSetting(flashlightRadius, (s, v) => s.FlashlightRadius = v, v => Math.Clamp(v, 20f, 400f));
+            enableGradualFlashlightRadiusChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualFlashlightRadiusChange = v.NewValue));
+            bindFloatSetting(gradualFlashlightRadiusEndTime, (s, v) => s.GradualFlashlightRadiusEndTimeMs = v, v => Math.Max(0f, v));
             forceDoubleTime.Current.BindValueChanged(v => mutateSetting(s => s.ForceDoubleTime = v.NewValue));
             showForceMods.Current.BindValueChanged(_ => updateGroupVisibility());
+
+            forceTransform.Current.BindValueChanged(v => mutateSetting(s => s.ForceTransform = v.NewValue));
+            forceWiggle.Current.BindValueChanged(v => mutateSetting(s => s.ForceWiggle = v.NewValue));
+            bindFloatSetting(wiggleStrength, (s, v) => s.WiggleStrength = v, v => Math.Clamp(v, 0.1f, 2f));
+            forceSpinIn.Current.BindValueChanged(v => mutateSetting(s => s.ForceSpinIn = v.NewValue));
+            forceGrow.Current.BindValueChanged(v => mutateSetting(s => s.ForceGrow = v.NewValue));
+            bindFloatSetting(growStartScale, (s, v) => s.GrowStartScale = v, v => Math.Clamp(v, 0f, 0.99f));
+            forceDeflate.Current.BindValueChanged(v => mutateSetting(s => s.ForceDeflate = v.NewValue));
+            bindFloatSetting(deflateStartScale, (s, v) => s.DeflateStartScale = v, v => Math.Clamp(v, 1f, 25f));
+            forceBarrelRoll.Current.BindValueChanged(v => mutateSetting(s => s.ForceBarrelRoll = v.NewValue));
+            bindDoubleSetting(barrelRollSpinSpeed, (s, v) => s.BarrelRollSpinSpeed = v, v => Math.Clamp(v, 0.02, 12));
+            forceApproachDifferent.Current.BindValueChanged(v => mutateSetting(s => s.ForceApproachDifferent = v.NewValue));
+            bindFloatSetting(approachDifferentScale, (s, v) => s.ApproachDifferentScale = v, v => Math.Clamp(v, 1.5f, 10f));
+            forceMuted.Current.BindValueChanged(v => mutateSetting(s => s.ForceMuted = v.NewValue));
+            bindIntSetting(mutedMuteComboCount, (s, v) => s.MutedMuteComboCount = v, v => Math.Clamp(v, 0, 500));
+            forceNoScope.Current.BindValueChanged(v => mutateSetting(s => s.ForceNoScope = v.NewValue));
+            bindIntSetting(noScopeHiddenComboCount, (s, v) => s.NoScopeHiddenComboCount = v, v => Math.Clamp(v, 0, 50));
+            forceMagnetised.Current.BindValueChanged(v => mutateSetting(s => s.ForceMagnetised = v.NewValue));
+            bindFloatSetting(magnetisedAttractionStrength, (s, v) => s.MagnetisedAttractionStrength = v, v => Math.Clamp(v, 0.05f, 1f));
+            forceRepel.Current.BindValueChanged(v => mutateSetting(s => s.ForceRepel = v.NewValue));
+            bindFloatSetting(repelRepulsionStrength, (s, v) => s.RepelRepulsionStrength = v, v => Math.Clamp(v, 0.05f, 1f));
+            forceFreezeFrame.Current.BindValueChanged(v => mutateSetting(s => s.ForceFreezeFrame = v.NewValue));
+            forceBubbles.Current.BindValueChanged(v => mutateSetting(s => s.ForceBubbles = v.NewValue));
+            forceSynesthesia.Current.BindValueChanged(v => mutateSetting(s => s.ForceSynesthesia = v.NewValue));
+            forceDepth.Current.BindValueChanged(v => mutateSetting(s => s.ForceDepth = v.NewValue));
+            bindFloatSetting(depthMaxDepth, (s, v) => s.DepthMaxDepth = v, v => Math.Clamp(v, 50f, 200f));
+            forceBloom.Current.BindValueChanged(v => mutateSetting(s => s.ForceBloom = v.NewValue));
+            bindIntSetting(bloomMaxSizeComboCount, (s, v) => s.BloomMaxSizeComboCount = v, v => Math.Clamp(v, 5, 100));
+            bindFloatSetting(bloomMaxCursorSize, (s, v) => s.BloomMaxCursorSize = v, v => Math.Clamp(v, 5f, 15f));
+            showFunMods.Current.BindValueChanged(_ => updateGroupVisibility());
         }
 
         private void mutateSetting(Action<SectionGimmickSettings> settingMutation)
@@ -802,6 +1039,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 greatOffsetPenaltyHp.Current.Value = formatFloat(settings.GreatOffsetPenaltyHP);
 
                 enableDifficultyOverrides.Current.Value = settings.EnableDifficultyOverrides;
+                allowUnsafeDifficultyOverrideValues.Current.Value = settings.AllowUnsafeDifficultyOverrideValues;
                 difficultyOverrideStartWithBeatmapValues.Current.Value = settings.DifficultyOverrideStartWithBeatmapValues;
                 enableGradualDifficultyChange.Current.Value = settings.EnableGradualDifficultyChange;
                 gradualDifficultyChangeEndTime.Current.Value = formatFloat(settings.GradualDifficultyChangeEndTimeMs);
@@ -814,12 +1052,44 @@ namespace osu.Game.Rulesets.Osu.Edit
                 forceNoApproachCircle.Current.Value = settings.ForceNoApproachCircle;
                 forceHardRock.Current.Value = settings.ForceHardRock;
                 forceFlashlight.Current.Value = settings.ForceFlashlight;
+                flashlightRadius.Current.Value = formatFloat(settings.FlashlightRadius);
+                enableGradualFlashlightRadiusChange.Current.Value = settings.EnableGradualFlashlightRadiusChange;
+                gradualFlashlightRadiusEndTime.Current.Value = formatFloat(settings.GradualFlashlightRadiusEndTimeMs);
                 forceDoubleTime.Current.Value = settings.ForceDoubleTime;
+                forceTransform.Current.Value = settings.ForceTransform;
+                forceWiggle.Current.Value = settings.ForceWiggle;
+                wiggleStrength.Current.Value = formatFloat(settings.WiggleStrength);
+                forceSpinIn.Current.Value = settings.ForceSpinIn;
+                forceGrow.Current.Value = settings.ForceGrow;
+                growStartScale.Current.Value = formatFloat(settings.GrowStartScale);
+                forceDeflate.Current.Value = settings.ForceDeflate;
+                deflateStartScale.Current.Value = formatFloat(settings.DeflateStartScale);
+                forceBarrelRoll.Current.Value = settings.ForceBarrelRoll;
+                barrelRollSpinSpeed.Current.Value = formatDouble(settings.BarrelRollSpinSpeed);
+                forceApproachDifferent.Current.Value = settings.ForceApproachDifferent;
+                approachDifferentScale.Current.Value = formatFloat(settings.ApproachDifferentScale);
+                forceMuted.Current.Value = settings.ForceMuted;
+                mutedMuteComboCount.Current.Value = settings.MutedMuteComboCount.ToString(CultureInfo.InvariantCulture);
+                forceNoScope.Current.Value = settings.ForceNoScope;
+                noScopeHiddenComboCount.Current.Value = settings.NoScopeHiddenComboCount.ToString(CultureInfo.InvariantCulture);
+                forceMagnetised.Current.Value = settings.ForceMagnetised;
+                magnetisedAttractionStrength.Current.Value = formatFloat(settings.MagnetisedAttractionStrength);
+                forceRepel.Current.Value = settings.ForceRepel;
+                repelRepulsionStrength.Current.Value = formatFloat(settings.RepelRepulsionStrength);
+                forceFreezeFrame.Current.Value = settings.ForceFreezeFrame;
+                forceBubbles.Current.Value = settings.ForceBubbles;
+                forceSynesthesia.Current.Value = settings.ForceSynesthesia;
+                forceDepth.Current.Value = settings.ForceDepth;
+                depthMaxDepth.Current.Value = formatFloat(settings.DepthMaxDepth);
+                forceBloom.Current.Value = settings.ForceBloom;
+                bloomMaxSizeComboCount.Current.Value = settings.BloomMaxSizeComboCount.ToString(CultureInfo.InvariantCulture);
+                bloomMaxCursorSize.Current.Value = formatFloat(settings.BloomMaxCursorSize);
                 showForceMods.Current.Value = settings.ForceHidden
                                                || settings.ForceNoApproachCircle
                                                || settings.ForceHardRock
                                                || settings.ForceFlashlight
                                                || settings.ForceDoubleTime;
+                showFunMods.Current.Value = hasAnyForcedFunMods(settings);
             }
 
             updatingControls = false;
@@ -856,6 +1126,13 @@ namespace osu.Game.Rulesets.Osu.Edit
 
             scheduleFade(forceModsFields, showForceMods.Current.Value, 8);
             forceModsFields.AlwaysPresent = showForceMods.Current.Value;
+
+            scheduleFade(funModsFields, showFunMods.Current.Value, 9);
+            funModsFields.AlwaysPresent = showFunMods.Current.Value;
+
+            bool showGradualFlRadius = showForceMods.Current.Value && forceFlashlight.Current.Value && enableGradualFlashlightRadiusChange.Current.Value;
+            scheduleFade(gradualFlashlightRadiusEndTime, showGradualFlRadius, 10);
+            gradualFlashlightRadiusEndTime.AlwaysPresent = showGradualFlRadius;
         }
 
         private void scheduleFade(Drawable drawable, bool visible, int slot)
@@ -932,6 +1209,92 @@ namespace osu.Game.Rulesets.Osu.Edit
             mutateSetting(s => mutation(s, value));
         }
 
+        private void updateDoubleSetting(FormNumberBox box, Action<SectionGimmickSettings, double> mutation)
+        {
+            if (!tryParseDouble(box.Current.Value, out double value))
+                return;
+
+            mutateSetting(s => mutation(s, value));
+        }
+
+        private void bindFloatSetting(FormNumberBox box, Action<SectionGimmickSettings, float> mutation, Func<float, float> clamp)
+        {
+            box.OnCommit += (_, _) => updateClampedFloatSetting(box, mutation, clamp);
+            box.Current.BindValueChanged(_ => updateClampedFloatSetting(box, mutation, clamp));
+        }
+
+        private void bindIntSetting(FormNumberBox box, Action<SectionGimmickSettings, int> mutation, Func<int, int> clamp)
+        {
+            box.OnCommit += (_, _) => updateClampedIntSetting(box, mutation, clamp);
+            box.Current.BindValueChanged(_ => updateClampedIntSetting(box, mutation, clamp));
+        }
+
+        private void bindDoubleSetting(FormNumberBox box, Action<SectionGimmickSettings, double> mutation, Func<double, double> clamp)
+        {
+            box.OnCommit += (_, _) => updateClampedDoubleSetting(box, mutation, clamp);
+            box.Current.BindValueChanged(_ => updateClampedDoubleSetting(box, mutation, clamp));
+        }
+
+        private void updateClampedFloatSetting(FormNumberBox box, Action<SectionGimmickSettings, float> mutation, Func<float, float> clamp)
+        {
+            if (updatingControls)
+                return;
+
+            if (!tryParseFloat(box.Current.Value, out float value))
+                return;
+
+            float clamped = clamp(value);
+            string formatted = formatFloat(clamped);
+
+            if (box.Current.Value != formatted)
+            {
+                box.Current.Value = formatted;
+                return;
+            }
+
+            mutateSetting(s => mutation(s, clamped));
+        }
+
+        private void updateClampedIntSetting(FormNumberBox box, Action<SectionGimmickSettings, int> mutation, Func<int, int> clamp)
+        {
+            if (updatingControls)
+                return;
+
+            if (!int.TryParse(box.Current.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+                return;
+
+            int clamped = clamp(value);
+            string formatted = clamped.ToString(CultureInfo.InvariantCulture);
+
+            if (box.Current.Value != formatted)
+            {
+                box.Current.Value = formatted;
+                return;
+            }
+
+            mutateSetting(s => mutation(s, clamped));
+        }
+
+        private void updateClampedDoubleSetting(FormNumberBox box, Action<SectionGimmickSettings, double> mutation, Func<double, double> clamp)
+        {
+            if (updatingControls)
+                return;
+
+            if (!tryParseDouble(box.Current.Value, out double value))
+                return;
+
+            double clamped = clamp(value);
+            string formatted = formatDouble(clamped);
+
+            if (box.Current.Value != formatted)
+            {
+                box.Current.Value = formatted;
+                return;
+            }
+
+            mutateSetting(s => mutation(s, clamped));
+        }
+
         private void applyCurrentSettingsByScope()
         {
             // Explicitly flush current section name before apply/scope actions.
@@ -973,11 +1336,41 @@ namespace osu.Game.Rulesets.Osu.Edit
         private static string formatFloat(float value)
             => float.IsNaN(value) ? string.Empty : value.ToString(CultureInfo.InvariantCulture);
 
+        private static string formatDouble(double value)
+            => double.IsNaN(value) ? string.Empty : value.ToString(CultureInfo.InvariantCulture);
+
         private static bool tryParseFloat(string input, out float value)
             => float.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 
         private static bool tryParseDouble(string input, out double value)
             => double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+
+        private static bool hasAnyForcedFunMods(SectionGimmickSettings settings)
+            => settings.ForceTransform
+               || settings.ForceWiggle
+               || settings.ForceSpinIn
+               || settings.ForceGrow
+               || settings.ForceDeflate
+               || settings.ForceBarrelRoll
+               || settings.ForceApproachDifferent
+               || settings.ForceMuted
+               || settings.ForceNoScope
+               || settings.ForceMagnetised
+               || settings.ForceRepel
+               || settings.ForceFreezeFrame
+               || settings.ForceBubbles
+               || settings.ForceSynesthesia
+               || settings.ForceDepth
+               || settings.ForceBloom;
+
+        private bool isUnsafeDifficultyOverrideEnabled()
+            => allowUnsafeDifficultyOverrideValues.Current.Value;
+
+        private void postUnsafeDifficultyWarning()
+            => notifications?.Post(new SimpleNotification
+            {
+                Text = "unsafe difficulty overrides enabled - values past normal limits can break gameplay or crash",
+            });
 
         public enum SectionGimmickApplyScope
         {

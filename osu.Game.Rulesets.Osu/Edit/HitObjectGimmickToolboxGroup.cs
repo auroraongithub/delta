@@ -8,9 +8,11 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Threading;
 using osu.Game.Beatmaps.SectionGimmicks;
+using osu.Game.Overlays;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterfaceV2;
+using osu.Game.Overlays.Notifications;
 using osu.Game.Rulesets.Edit;
 using osuTK;
 using osuTK.Graphics;
@@ -21,6 +23,9 @@ namespace osu.Game.Rulesets.Osu.Edit
     {
         [Resolved]
         private osu.Game.Screens.Edit.EditorBeatmap editorBeatmap { get; set; } = null!;
+
+        [Resolved(canBeNull: true)]
+        private INotificationOverlay? notifications { get; set; }
 
         private HitObjectGimmickEditorModel model = null!;
 
@@ -43,6 +48,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormNumberBox greatOffsetPenaltyHp = null!;
 
         private FormCheckBox enableDifficultyOverrides = null!;
+        private FormCheckBox allowUnsafeDifficultyOverrideValues = null!;
         private FormNumberBox sectionCircleSize = null!;
         private FormNumberBox sectionApproachRate = null!;
         private FormNumberBox sectionOverallDifficulty = null!;
@@ -50,6 +56,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormCheckBox forceHidden = null!;
         private FormCheckBox forceHardRock = null!;
         private FormCheckBox forceFlashlight = null!;
+        private FormNumberBox flashlightRadius = null!;
         private FormCheckBox forceNoApproachCircle = null!;
 
         private FillFlowContainer hpFields = null!;
@@ -111,6 +118,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
                     enableDifficultyOverrides = new FormCheckBox { Caption = "Difficulty Overrides (CS/AR/OD)" },
                     difficultyOverrideFields = createContainer(
+                        allowUnsafeDifficultyOverrideValues = new FormCheckBox { Caption = "Allow values past limits (unsafe)" },
                         sectionCircleSize = new FormNumberBox(allowDecimals: true) { Caption = "SectionCircleSize (0-11)" },
                         sectionApproachRate = new FormNumberBox(allowDecimals: true) { Caption = "SectionApproachRate (<= 11)" },
                         sectionOverallDifficulty = new FormNumberBox(allowDecimals: true) { Caption = "SectionOverallDifficulty (0-11)" }),
@@ -118,6 +126,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                     forceHidden = new FormCheckBox { Caption = "Force Hidden (HD)" },
                     forceHardRock = new FormCheckBox { Caption = "Force Hard Rock (HR)" },
                     forceFlashlight = new FormCheckBox { Caption = "Force Flashlight (FL)" },
+                    flashlightRadius = new FormNumberBox(allowDecimals: true) { Caption = "FL radius (20-400)" },
                     forceNoApproachCircle = new FormCheckBox { Caption = "Force No Approach Circle" },
                 }
             };
@@ -138,28 +147,48 @@ namespace osu.Game.Rulesets.Osu.Edit
             enableCountLimits.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableCountLimits = value));
             enableGreatOffsetPenalty.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableGreatOffsetPenalty = value));
             enableDifficultyOverrides.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableDifficultyOverrides = value));
+            allowUnsafeDifficultyOverrideValues.Current.BindValueChanged(v =>
+            {
+                if (!updatingControls && v.NewValue)
+                    postUnsafeDifficultyWarning();
+
+                setBool(v.NewValue, (s, value) => s.AllowUnsafeDifficultyOverrideValues = value);
+            });
 
             forceHidden.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceHidden = value));
             forceHardRock.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceHardRock = value));
             forceFlashlight.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceFlashlight = value));
+            bindFloat(flashlightRadius, (s, value) => s.FlashlightRadius = value, v => Math.Clamp(v, 20f, 400f));
             forceNoApproachCircle.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceNoApproachCircle = value));
 
-            hp300.OnCommit += (_, _) => setFloat(hp300, (s, value) => s.HP300 = value);
-            hp100.OnCommit += (_, _) => setFloat(hp100, (s, value) => s.HP100 = value);
-            hp50.OnCommit += (_, _) => setFloat(hp50, (s, value) => s.HP50 = value);
-            hpMiss.OnCommit += (_, _) => setFloat(hpMiss, (s, value) => s.HPMiss = value);
+            bindFloat(hp300, (s, value) => s.HP300 = value, v => Math.Clamp(v, -2f, 2f));
+            bindFloat(hp100, (s, value) => s.HP100 = value, v => Math.Clamp(v, -2f, 2f));
+            bindFloat(hp50, (s, value) => s.HP50 = value, v => Math.Clamp(v, -2f, 2f));
+            bindFloat(hpMiss, (s, value) => s.HPMiss = value, v => Math.Clamp(v, -2f, 2f));
 
-            max300.OnCommit += (_, _) => setInt(max300, (s, value) => s.Max300s = value);
-            max100.OnCommit += (_, _) => setInt(max100, (s, value) => s.Max100s = value);
-            max50.OnCommit += (_, _) => setInt(max50, (s, value) => s.Max50s = value);
-            maxMiss.OnCommit += (_, _) => setInt(maxMiss, (s, value) => s.MaxMisses = value);
+            bindInt(max300, (s, value) => s.Max300s = value, v => Math.Max(-1, v));
+            bindInt(max100, (s, value) => s.Max100s = value, v => Math.Max(-1, v));
+            bindInt(max50, (s, value) => s.Max50s = value, v => Math.Max(-1, v));
+            bindInt(maxMiss, (s, value) => s.MaxMisses = value, v => Math.Max(-1, v));
 
-            greatOffsetThreshold.OnCommit += (_, _) => setFloat(greatOffsetThreshold, (s, value) => s.GreatOffsetThresholdMs = value);
-            greatOffsetPenaltyHp.OnCommit += (_, _) => setFloat(greatOffsetPenaltyHp, (s, value) => s.GreatOffsetPenaltyHP = value);
+            bindFloat(greatOffsetThreshold, (s, value) => s.GreatOffsetThresholdMs = value, v => Math.Max(0f, v));
+            bindFloat(greatOffsetPenaltyHp, (s, value) => s.GreatOffsetPenaltyHP = value, v => Math.Min(0f, v));
 
-            sectionCircleSize.OnCommit += (_, _) => setFloat(sectionCircleSize, (s, value) => s.SectionCircleSize = value);
-            sectionApproachRate.OnCommit += (_, _) => setFloat(sectionApproachRate, (s, value) => s.SectionApproachRate = value);
-            sectionOverallDifficulty.OnCommit += (_, _) => setFloat(sectionOverallDifficulty, (s, value) => s.SectionOverallDifficulty = value);
+            bindFloat(sectionCircleSize, (s, value) => s.SectionCircleSize = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampCircleSize(v));
+            bindFloat(sectionApproachRate, (s, value) => s.SectionApproachRate = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampApproachRate(v));
+            bindFloat(sectionOverallDifficulty, (s, value) => s.SectionOverallDifficulty = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampOverallDifficulty(v));
+        }
+
+        private void bindFloat(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter, Func<float, float> clamp)
+        {
+            source.OnCommit += (_, _) => setFloat(source, setter, clamp);
+            source.Current.BindValueChanged(_ => setFloat(source, setter, clamp));
+        }
+
+        private void bindInt(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, int> setter, Func<int, int> clamp)
+        {
+            source.OnCommit += (_, _) => setInt(source, setter, clamp);
+            source.Current.BindValueChanged(_ => setInt(source, setter, clamp));
         }
 
         private void scheduleSelectionUpdate()
@@ -195,14 +224,15 @@ namespace osu.Game.Rulesets.Osu.Edit
                 enableNoMiss,
                 enableCountLimits, max300, max100, max50, maxMiss,
                 enableGreatOffsetPenalty, greatOffsetThreshold, greatOffsetPenaltyHp,
-                enableDifficultyOverrides, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
-                forceHidden, forceHardRock, forceFlashlight, forceNoApproachCircle);
+                enableDifficultyOverrides, allowUnsafeDifficultyOverrideValues, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
+                forceHidden, forceHardRock, forceFlashlight, flashlightRadius, forceNoApproachCircle);
 
             enableHpGimmick.Current.Value = hasSelection && state.EnableHPGimmick;
             enableNoMiss.Current.Value = hasSelection && state.EnableNoMiss;
             enableCountLimits.Current.Value = hasSelection && state.EnableCountLimits;
             enableGreatOffsetPenalty.Current.Value = hasSelection && state.EnableGreatOffsetPenalty;
             enableDifficultyOverrides.Current.Value = hasSelection && state.EnableDifficultyOverrides;
+            allowUnsafeDifficultyOverrideValues.Current.Value = hasSelection && state.AllowUnsafeDifficultyOverrideValues;
 
             forceHidden.Current.Value = hasSelection && state.ForceHidden;
             forceHardRock.Current.Value = hasSelection && state.ForceHardRock;
@@ -226,6 +256,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             sectionCircleSize.Current.Value = formatFloat(representative?.SectionCircleSize ?? float.NaN);
             sectionApproachRate.Current.Value = formatFloat(representative?.SectionApproachRate ?? float.NaN);
             sectionOverallDifficulty.Current.Value = formatFloat(representative?.SectionOverallDifficulty ?? float.NaN);
+            flashlightRadius.Current.Value = formatFloat(representative?.FlashlightRadius ?? float.NaN);
 
             scheduleFade(hpFields, enableHpGimmick.Current.Value, 0);
             hpFields.AlwaysPresent = enableHpGimmick.Current.Value;
@@ -248,8 +279,8 @@ namespace osu.Game.Rulesets.Osu.Edit
                     enableNoMiss,
                     enableCountLimits, max300, max100, max50, maxMiss,
                     enableGreatOffsetPenalty, greatOffsetThreshold, greatOffsetPenaltyHp,
-                    enableDifficultyOverrides, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
-                    forceHidden, forceHardRock, forceFlashlight, forceNoApproachCircle);
+                    enableDifficultyOverrides, allowUnsafeDifficultyOverrideValues, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
+                    forceHidden, forceHardRock, forceFlashlight, flashlightRadius, forceNoApproachCircle);
             }
 
             updatingControls = false;
@@ -284,7 +315,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             scheduleSelectionUpdate();
         }
 
-        private void setFloat(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter)
+        private void setFloat(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter, Func<float, float> clamp)
         {
             if (updatingControls)
                 return;
@@ -295,11 +326,20 @@ namespace osu.Game.Rulesets.Osu.Edit
             if (!float.TryParse(source.Current.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
                 return;
 
-            model.SetSelectionFloatSetting(setter, value);
+            float clamped = clamp(value);
+            string formatted = formatFloat(clamped);
+
+            if (source.Current.Value != formatted)
+            {
+                source.Current.Value = formatted;
+                return;
+            }
+
+            model.SetSelectionFloatSetting(setter, clamped);
             scheduleSelectionUpdate();
         }
 
-        private void setInt(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, int> setter)
+        private void setInt(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, int> setter, Func<int, int> clamp)
         {
             if (updatingControls)
                 return;
@@ -310,7 +350,16 @@ namespace osu.Game.Rulesets.Osu.Edit
             if (!int.TryParse(source.Current.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
                 return;
 
-            model.SetSelectionIntSetting(setter, value);
+            int clamped = clamp(value);
+            string formatted = formatInt(clamped);
+
+            if (source.Current.Value != formatted)
+            {
+                source.Current.Value = formatted;
+                return;
+            }
+
+            model.SetSelectionIntSetting(setter, clamped);
             scheduleSelectionUpdate();
         }
 
@@ -351,5 +400,14 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private static string formatInt(int value)
             => value.ToString(CultureInfo.InvariantCulture);
+
+        private bool isUnsafeDifficultyOverrideEnabled()
+            => allowUnsafeDifficultyOverrideValues.Current.Value;
+
+        private void postUnsafeDifficultyWarning()
+            => notifications?.Post(new SimpleNotification
+            {
+                Text = "unsafe difficulty overrides enabled - values past normal limits can break gameplay or crash",
+            });
     }
 }

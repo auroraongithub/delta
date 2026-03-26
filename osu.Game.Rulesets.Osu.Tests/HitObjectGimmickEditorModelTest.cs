@@ -88,5 +88,57 @@ namespace osu.Game.Rulesets.Osu.Tests
             editorBeatmap.SelectedHitObjects.Add(second);
             Assert.That(model.IsSelectionNoApproachCircleForced, Is.False);
         }
+
+        [Test]
+        public void TestSetSelectionFloatSettingClampsOutOfRangeValues()
+        {
+            var beatmap = new osu.Game.Rulesets.Osu.Beatmaps.OsuBeatmap();
+            var first = new HitCircle { StartTime = 500 };
+            beatmap.HitObjects.Add(first);
+
+            beatmap.BeatmapInfo.Ruleset = new osu.Game.Rulesets.Osu.OsuRuleset().RulesetInfo;
+            var editorBeatmap = new EditorBeatmap(beatmap, beatmapInfo: beatmap.BeatmapInfo);
+            first.UpdateComboInformation(null);
+            editorBeatmap.SelectedHitObjects.Add(first);
+
+            var model = new HitObjectGimmickEditorModel(editorBeatmap);
+
+            model.SetSelectionFloatSetting((s, value) => s.SectionCircleSize = value, 500);
+            model.SetSelectionFloatSetting((s, value) => s.SectionApproachRate = value, -500);
+            model.SetSelectionFloatSetting((s, value) => s.SectionOverallDifficulty = value, 500);
+            model.SetSelectionFloatSetting((s, value) => s.HP300 = value, 500);
+
+            var entry = editorBeatmap.HitObjectGimmicks.Entries[0];
+
+            Assert.That(entry.Settings.SectionCircleSize, Is.EqualTo(11));
+            Assert.That(entry.Settings.SectionApproachRate, Is.EqualTo(-20));
+            Assert.That(entry.Settings.SectionOverallDifficulty, Is.EqualTo(11));
+            Assert.That(entry.Settings.HP300, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TestSetSelectionFloatSettingAllowsUnsafeDifficultyOverrideValues()
+        {
+            var beatmap = new osu.Game.Rulesets.Osu.Beatmaps.OsuBeatmap();
+            var first = new HitCircle { StartTime = 500 };
+            beatmap.HitObjects.Add(first);
+
+            beatmap.BeatmapInfo.Ruleset = new osu.Game.Rulesets.Osu.OsuRuleset().RulesetInfo;
+            var editorBeatmap = new EditorBeatmap(beatmap, beatmapInfo: beatmap.BeatmapInfo);
+            first.UpdateComboInformation(null);
+            editorBeatmap.SelectedHitObjects.Add(first);
+
+            var model = new HitObjectGimmickEditorModel(editorBeatmap);
+
+            model.SetSelectionBoolSetting((s, value) => s.AllowUnsafeDifficultyOverrideValues = value, true);
+            model.SetSelectionFloatSetting((s, value) => s.SectionCircleSize = value, 500);
+            model.SetSelectionFloatSetting((s, value) => s.SectionApproachRate = value, 500);
+
+            var entry = editorBeatmap.HitObjectGimmicks.Entries[0];
+
+            Assert.That(entry.Settings.AllowUnsafeDifficultyOverrideValues, Is.True);
+            Assert.That(entry.Settings.SectionCircleSize, Is.EqualTo(500));
+            Assert.That(entry.Settings.SectionApproachRate, Is.EqualTo(500));
+        }
     }
 }

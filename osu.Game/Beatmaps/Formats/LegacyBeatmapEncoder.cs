@@ -464,6 +464,7 @@ namespace osu.Game.Beatmaps.Formats
             if (!float.IsNaN(settings.GreatOffsetPenaltyHP)) yield return $"GreatOffsetPenaltyHP={settings.GreatOffsetPenaltyHP.ToString(CultureInfo.InvariantCulture)}";
 
             if (settings.EnableDifficultyOverrides) yield return "EnableDifficultyOverrides=True";
+            if (settings.AllowUnsafeDifficultyOverrideValues) yield return "AllowUnsafeDifficultyOverrideValues=True";
             if (settings.DifficultyOverrideStartWithBeatmapValues) yield return "DifficultyOverrideStartWithBeatmapValues=True";
             if (settings.EnableGradualDifficultyChange) yield return "EnableGradualDifficultyChange=True";
             if (!float.IsNaN(settings.GradualDifficultyChangeEndTimeMs)) yield return $"GradualDifficultyChangeEndTimeMs={settings.GradualDifficultyChangeEndTimeMs.ToString(CultureInfo.InvariantCulture)}";
@@ -475,6 +476,9 @@ namespace osu.Game.Beatmaps.Formats
             if (settings.ForceNoApproachCircle) yield return "ForceNoApproachCircle=True";
             if (settings.ForceHardRock) yield return "ForceHardRock=True";
             if (settings.ForceFlashlight) yield return "ForceFlashlight=True";
+            if (!float.IsNaN(settings.FlashlightRadius)) yield return $"FlashlightRadius={settings.FlashlightRadius.ToString(CultureInfo.InvariantCulture)}";
+            if (settings.EnableGradualFlashlightRadiusChange) yield return "EnableGradualFlashlightRadiusChange=True";
+            if (!float.IsNaN(settings.GradualFlashlightRadiusEndTimeMs)) yield return $"GradualFlashlightRadiusEndTimeMs={settings.GradualFlashlightRadiusEndTimeMs.ToString(CultureInfo.InvariantCulture)}";
             if (settings.ForceDoubleTime) yield return "ForceDoubleTime=True";
             if (settings.ForceSingleTap) yield return "ForceSingleTap=True";
             if (settings.ForceAlternate) yield return "ForceAlternate=True";
@@ -539,6 +543,7 @@ namespace osu.Game.Beatmaps.Formats
             if (!float.IsNaN(settings.GreatOffsetPenaltyHP)) yield return $"GreatOffsetPenaltyHP={settings.GreatOffsetPenaltyHP.ToString(CultureInfo.InvariantCulture)}";
 
             if (settings.EnableDifficultyOverrides) yield return "EnableDifficultyOverrides=True";
+            if (settings.AllowUnsafeDifficultyOverrideValues) yield return "AllowUnsafeDifficultyOverrideValues=True";
             if (!float.IsNaN(settings.SectionCircleSize)) yield return $"SectionCircleSize={settings.SectionCircleSize.ToString(CultureInfo.InvariantCulture)}";
             if (!float.IsNaN(settings.SectionApproachRate)) yield return $"SectionApproachRate={settings.SectionApproachRate.ToString(CultureInfo.InvariantCulture)}";
             if (!float.IsNaN(settings.SectionOverallDifficulty)) yield return $"SectionOverallDifficulty={settings.SectionOverallDifficulty.ToString(CultureInfo.InvariantCulture)}";
@@ -547,6 +552,7 @@ namespace osu.Game.Beatmaps.Formats
             if (settings.ForceNoApproachCircle) yield return "ForceNoApproachCircle=True";
             if (settings.ForceHardRock) yield return "ForceHardRock=True";
             if (settings.ForceFlashlight) yield return "ForceFlashlight=True";
+            if (!float.IsNaN(settings.FlashlightRadius)) yield return $"FlashlightRadius={settings.FlashlightRadius.ToString(CultureInfo.InvariantCulture)}";
         }
 
         private void handleHitObject(TextWriter writer, HitObject hitObject)

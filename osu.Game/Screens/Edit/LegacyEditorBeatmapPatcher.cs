@@ -299,6 +299,7 @@ namespace osu.Game.Screens.Edit
                                 GreatOffsetThresholdMs = settings.GreatOffsetThresholdMs,
                                 GreatOffsetPenaltyHP = settings.GreatOffsetPenaltyHP,
                                 EnableDifficultyOverrides = settings.EnableDifficultyOverrides,
+                                AllowUnsafeDifficultyOverrideValues = settings.AllowUnsafeDifficultyOverrideValues,
                                 DifficultyOverrideStartWithBeatmapValues = settings.DifficultyOverrideStartWithBeatmapValues,
                                 EnableGradualDifficultyChange = settings.EnableGradualDifficultyChange,
                                 GradualDifficultyChangeEndTimeMs = settings.GradualDifficultyChangeEndTimeMs,
@@ -310,6 +311,9 @@ namespace osu.Game.Screens.Edit
                                 ForceNoApproachCircle = settings.ForceNoApproachCircle,
                                 ForceHardRock = settings.ForceHardRock,
                                 ForceFlashlight = settings.ForceFlashlight,
+                                FlashlightRadius = settings.FlashlightRadius,
+                                EnableGradualFlashlightRadiusChange = settings.EnableGradualFlashlightRadiusChange,
+                                GradualFlashlightRadiusEndTimeMs = settings.GradualFlashlightRadiusEndTimeMs,
                                 ForceDoubleTime = settings.ForceDoubleTime,
                                 ForceSingleTap = settings.ForceSingleTap,
                                 ForceAlternate = settings.ForceAlternate,
@@ -376,6 +380,7 @@ namespace osu.Game.Screens.Edit
                             GreatOffsetThresholdMs = settings.GreatOffsetThresholdMs,
                             GreatOffsetPenaltyHP = settings.GreatOffsetPenaltyHP,
                             EnableDifficultyOverrides = settings.EnableDifficultyOverrides,
+                            AllowUnsafeDifficultyOverrideValues = settings.AllowUnsafeDifficultyOverrideValues,
                             SectionCircleSize = settings.SectionCircleSize,
                             SectionApproachRate = settings.SectionApproachRate,
                             SectionOverallDifficulty = settings.SectionOverallDifficulty,
@@ -383,6 +388,7 @@ namespace osu.Game.Screens.Edit
                             ForceNoApproachCircle = settings.ForceNoApproachCircle,
                             ForceHardRock = settings.ForceHardRock,
                             ForceFlashlight = settings.ForceFlashlight,
+                            FlashlightRadius = settings.FlashlightRadius,
                         }
                     };
                 }).ToList(),

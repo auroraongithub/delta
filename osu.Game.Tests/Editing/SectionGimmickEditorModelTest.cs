@@ -121,6 +121,60 @@ namespace osu.Game.Tests.Editing
             Assert.That(source.Sections[0].Settings.EnableNoMiss, Is.True);
         }
 
+        [Test]
+        public void TestSetSelectedSettingClampsOutOfRangeValues()
+        {
+            var editorBeatmap = createEditorBeatmap();
+            var model = new SectionGimmickEditorModel(editorBeatmap);
+
+            model.AddSection(0);
+            model.SetSelectedSetting(s =>
+            {
+                s.SectionCircleSize = 500;
+                s.SectionApproachRate = 500;
+                s.SectionOverallDifficulty = -50;
+                s.HP300 = 999;
+                s.HPStart = -2;
+                s.HPCap = 3;
+                s.WiggleStrength = -10;
+                s.BloomMaxCursorSize = 999;
+            });
+
+            var settings = model.Sections[0].Settings;
+
+            Assert.That(settings.SectionCircleSize, Is.EqualTo(11));
+            Assert.That(settings.SectionApproachRate, Is.EqualTo(11));
+            Assert.That(settings.SectionOverallDifficulty, Is.EqualTo(0));
+            Assert.That(settings.HP300, Is.EqualTo(2));
+            Assert.That(settings.HPStart, Is.EqualTo(0));
+            Assert.That(settings.HPCap, Is.EqualTo(1));
+            Assert.That(settings.WiggleStrength, Is.EqualTo(0.1f));
+            Assert.That(settings.BloomMaxCursorSize, Is.EqualTo(15));
+        }
+
+        [Test]
+        public void TestSetSelectedSettingAllowsUnsafeDifficultyOverrideValues()
+        {
+            var editorBeatmap = createEditorBeatmap();
+            var model = new SectionGimmickEditorModel(editorBeatmap);
+
+            model.AddSection(0);
+            model.SetSelectedSetting(s =>
+            {
+                s.AllowUnsafeDifficultyOverrideValues = true;
+                s.SectionCircleSize = 500;
+                s.SectionApproachRate = 500;
+                s.SectionOverallDifficulty = -500;
+            });
+
+            var settings = model.Sections[0].Settings;
+
+            Assert.That(settings.AllowUnsafeDifficultyOverrideValues, Is.True);
+            Assert.That(settings.SectionCircleSize, Is.EqualTo(500));
+            Assert.That(settings.SectionApproachRate, Is.EqualTo(500));
+            Assert.That(settings.SectionOverallDifficulty, Is.EqualTo(-500));
+        }
+
         private static EditorBeatmap createEditorBeatmap()
             => new EditorBeatmap(new Beatmap
             {

@@ -43,6 +43,7 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         public float GreatOffsetPenaltyHP { get; set; } = float.NaN;
 
         public bool EnableDifficultyOverrides { get; set; }
+        public bool AllowUnsafeDifficultyOverrideValues { get; set; }
         public bool DifficultyOverrideStartWithBeatmapValues { get; set; }
         public bool EnableGradualDifficultyChange { get; set; }
         public float GradualDifficultyChangeEndTimeMs { get; set; } = float.NaN;
@@ -55,6 +56,9 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         public bool ForceNoApproachCircle { get; set; }
         public bool ForceHardRock { get; set; }
         public bool ForceFlashlight { get; set; }
+        public float FlashlightRadius { get; set; } = float.NaN;
+        public bool EnableGradualFlashlightRadiusChange { get; set; }
+        public float GradualFlashlightRadiusEndTimeMs { get; set; } = float.NaN;
         public bool ForceDoubleTime { get; set; }
         public bool ForceSingleTap { get; set; }
         public bool ForceAlternate { get; set; }

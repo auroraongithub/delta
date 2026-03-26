@@ -21,6 +21,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             public readonly bool EnableCountLimits;
             public readonly bool EnableGreatOffsetPenalty;
             public readonly bool EnableDifficultyOverrides;
+            public readonly bool AllowUnsafeDifficultyOverrideValues;
             public readonly bool ForceHidden;
             public readonly bool ForceHardRock;
             public readonly bool ForceFlashlight;
@@ -35,6 +36,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 bool enableCountLimits,
                 bool enableGreatOffsetPenalty,
                 bool enableDifficultyOverrides,
+                bool allowUnsafeDifficultyOverrideValues,
                 bool forceHidden,
                 bool forceHardRock,
                 bool forceFlashlight,
@@ -48,6 +50,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 EnableCountLimits = enableCountLimits;
                 EnableGreatOffsetPenalty = enableGreatOffsetPenalty;
                 EnableDifficultyOverrides = enableDifficultyOverrides;
+                AllowUnsafeDifficultyOverrideValues = allowUnsafeDifficultyOverrideValues;
                 ForceHidden = forceHidden;
                 ForceHardRock = forceHardRock;
                 ForceFlashlight = forceFlashlight;
@@ -108,7 +111,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
 
             if (selected.Count == 0)
-                return new SelectionState(false, 0, false, false, false, false, false, false, false, false, false, null);
+                return new SelectionState(false, 0, false, false, false, false, false, false, false, false, false, false, null);
 
             var lookup = createLookup(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
 
@@ -128,6 +131,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 enableCountLimits: getBoolState(s => s.EnableCountLimits),
                 enableGreatOffsetPenalty: getBoolState(s => s.EnableGreatOffsetPenalty),
                 enableDifficultyOverrides: getBoolState(s => s.EnableDifficultyOverrides),
+                allowUnsafeDifficultyOverrideValues: getBoolState(s => s.AllowUnsafeDifficultyOverrideValues),
                 forceHidden: getBoolState(s => s.ForceHidden),
                 forceHardRock: getBoolState(s => s.ForceHardRock),
                 forceFlashlight: getBoolState(s => s.ForceFlashlight),
@@ -203,6 +207,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             {
                 var entry = getOrCreateEntry(updated, hitObject);
                 setter(entry.Settings, value);
+                SectionGimmickValueClamper.ClampHitObjectSettingsInPlace(entry.Settings);
                 cleanupEntryIfEmpty(updated, entry);
             }
 
@@ -225,6 +230,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             {
                 var entry = getOrCreateEntry(updated, hitObject);
                 setter(entry.Settings, value);
+                SectionGimmickValueClamper.ClampHitObjectSettingsInPlace(entry.Settings);
                 cleanupEntryIfEmpty(updated, entry);
             }
 
@@ -262,6 +268,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                             GreatOffsetThresholdMs = settings.GreatOffsetThresholdMs,
                             GreatOffsetPenaltyHP = settings.GreatOffsetPenaltyHP,
                             EnableDifficultyOverrides = settings.EnableDifficultyOverrides,
+                            AllowUnsafeDifficultyOverrideValues = settings.AllowUnsafeDifficultyOverrideValues,
                             SectionCircleSize = settings.SectionCircleSize,
                             SectionApproachRate = settings.SectionApproachRate,
                             SectionOverallDifficulty = settings.SectionOverallDifficulty,
@@ -269,6 +276,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                             ForceNoApproachCircle = settings.ForceNoApproachCircle,
                             ForceHardRock = settings.ForceHardRock,
                             ForceFlashlight = settings.ForceFlashlight,
+                            FlashlightRadius = settings.FlashlightRadius,
                         }
                     };
                 }).ToList(),
@@ -353,6 +361,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                           || s.EnableCountLimits
                           || s.EnableGreatOffsetPenalty
                           || s.EnableDifficultyOverrides
+                          || s.AllowUnsafeDifficultyOverrideValues
                           || s.ForceHidden
                           || s.ForceNoApproachCircle
                           || s.ForceHardRock
@@ -369,7 +378,8 @@ namespace osu.Game.Rulesets.Osu.Edit
                           || !float.IsNaN(s.GreatOffsetPenaltyHP)
                           || !float.IsNaN(s.SectionCircleSize)
                           || !float.IsNaN(s.SectionApproachRate)
-                          || !float.IsNaN(s.SectionOverallDifficulty);
+                          || !float.IsNaN(s.SectionOverallDifficulty)
+                          || !float.IsNaN(s.FlashlightRadius);
 
             if (!hasAny)
                 gimmicks.Entries.Remove(entry);
@@ -397,6 +407,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 GreatOffsetPenaltyHP = source.GreatOffsetPenaltyHP,
 
                 EnableDifficultyOverrides = source.EnableDifficultyOverrides,
+                AllowUnsafeDifficultyOverrideValues = source.AllowUnsafeDifficultyOverrideValues,
                 SectionCircleSize = source.SectionCircleSize,
                 SectionApproachRate = source.SectionApproachRate,
                 SectionOverallDifficulty = source.SectionOverallDifficulty,
@@ -405,6 +416,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 ForceNoApproachCircle = source.ForceNoApproachCircle,
                 ForceHardRock = source.ForceHardRock,
                 ForceFlashlight = source.ForceFlashlight,
+                FlashlightRadius = source.FlashlightRadius,
             };
 
         private static Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> createLookup(BeatmapHitObjectGimmicks gimmicks)

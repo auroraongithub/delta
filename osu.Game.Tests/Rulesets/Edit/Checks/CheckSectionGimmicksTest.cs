@@ -187,6 +187,72 @@ namespace osu.Game.Tests.Rulesets.Edit.Checks
             Assert.That(issues[0].ToString(), Does.Contain("HPCap").IgnoreCase);
         }
 
+        [Test]
+        public void TestNoIssueForOutOfRangeDifficultyWhenUnsafeEnabled()
+        {
+            var beatmap = new Beatmap();
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableDifficultyOverrides = true,
+                    AllowUnsafeDifficultyOverrideValues = true,
+                    SectionCircleSize = 500,
+                }
+            });
+
+            var issues = new CheckSectionGimmicks().Run(createContext(beatmap)).ToList();
+
+            Assert.That(issues, Is.Empty);
+        }
+
+        [Test]
+        public void TestIssueForInvalidFlashlightRadius()
+        {
+            var beatmap = new Beatmap();
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    ForceFlashlight = true,
+                    FlashlightRadius = 999,
+                }
+            });
+
+            var issues = new CheckSectionGimmicks().Run(createContext(beatmap)).ToList();
+
+            Assert.That(issues.Count, Is.EqualTo(1));
+            Assert.That(issues[0].ToString(), Does.Contain("FlashlightRadius").IgnoreCase);
+        }
+
+        [Test]
+        public void TestIssueForGradualFlashlightRadiusWithoutForceFlashlight()
+        {
+            var beatmap = new Beatmap();
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableGradualFlashlightRadiusChange = true,
+                    FlashlightRadius = 120,
+                }
+            });
+
+            var issues = new CheckSectionGimmicks().Run(createContext(beatmap)).ToList();
+
+            Assert.That(issues.Count, Is.EqualTo(1));
+            Assert.That(issues[0].ToString(), Does.Contain("gradual flashlight radius").IgnoreCase);
+        }
+
         private static BeatmapVerifierContext createContext(IBeatmap beatmap)
         {
             var working = new TestWorkingBeatmap(beatmap.BeatmapInfo, beatmap);

@@ -336,6 +336,16 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
 
                 applyObjectDifficultyOverrides(objectSettings, difficulty);
 
+                bool allowUnsafeDifficulty = (section?.Settings.EnableDifficultyOverrides == true && section.Settings.AllowUnsafeDifficultyOverrideValues)
+                                             || (objectSettings?.EnableDifficultyOverrides == true && objectSettings.AllowUnsafeDifficultyOverrideValues);
+
+                if (!allowUnsafeDifficulty)
+                {
+                    difficulty.CircleSize = SectionGimmickValueClamper.ClampCircleSize(difficulty.CircleSize);
+                    difficulty.ApproachRate = SectionGimmickValueClamper.ClampApproachRate(difficulty.ApproachRate);
+                    difficulty.OverallDifficulty = SectionGimmickValueClamper.ClampOverallDifficulty(difficulty.OverallDifficulty);
+                }
+
                 hitObject.ApplyDefaults(beatmap.ControlPointInfo, difficulty);
             }
         }

@@ -69,13 +69,22 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                         throw new InvalidOperationException($"Section {section.Id}: difficulty override enabled but no CS/AR/OD override specified.");
 
                     if (!float.IsNaN(settings.SectionCircleSize) && (settings.SectionCircleSize < 0 || settings.SectionCircleSize > 11))
-                        throw new InvalidOperationException($"Section {section.Id}: SectionCircleSize must be in [0, 11].");
+                    {
+                        if (!settings.AllowUnsafeDifficultyOverrideValues)
+                            throw new InvalidOperationException($"Section {section.Id}: SectionCircleSize must be in [0, 11].");
+                    }
 
                     if (!float.IsNaN(settings.SectionApproachRate) && settings.SectionApproachRate > 11)
-                        throw new InvalidOperationException($"Section {section.Id}: SectionApproachRate must be <= 11.");
+                    {
+                        if (!settings.AllowUnsafeDifficultyOverrideValues)
+                            throw new InvalidOperationException($"Section {section.Id}: SectionApproachRate must be <= 11.");
+                    }
 
                     if (!float.IsNaN(settings.SectionOverallDifficulty) && (settings.SectionOverallDifficulty < 0 || settings.SectionOverallDifficulty > 11))
-                        throw new InvalidOperationException($"Section {section.Id}: SectionOverallDifficulty must be in [0, 11].");
+                    {
+                        if (!settings.AllowUnsafeDifficultyOverrideValues)
+                            throw new InvalidOperationException($"Section {section.Id}: SectionOverallDifficulty must be in [0, 11].");
+                    }
 
                     if (settings.EnableGradualDifficultyChange)
                     {
@@ -87,6 +96,27 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                             if (section.EndTime >= 0 && settings.GradualDifficultyChangeEndTimeMs > section.EndTime)
                                 throw new InvalidOperationException($"Section {section.Id}: GradualDifficultyChangeEndTimeMs must be within section range.");
                         }
+                    }
+                }
+
+                if (!float.IsNaN(settings.FlashlightRadius) && (settings.FlashlightRadius < 20 || settings.FlashlightRadius > 400))
+                    throw new InvalidOperationException($"Section {section.Id}: FlashlightRadius must be in [20, 400].");
+
+                if (settings.EnableGradualFlashlightRadiusChange)
+                {
+                    if (!settings.ForceFlashlight)
+                        throw new InvalidOperationException($"Section {section.Id}: gradual flashlight radius requires ForceFlashlight.");
+
+                    if (float.IsNaN(settings.FlashlightRadius))
+                        throw new InvalidOperationException($"Section {section.Id}: gradual flashlight radius requires FlashlightRadius.");
+
+                    if (!float.IsNaN(settings.GradualFlashlightRadiusEndTimeMs))
+                    {
+                        if (settings.GradualFlashlightRadiusEndTimeMs < section.StartTime)
+                            throw new InvalidOperationException($"Section {section.Id}: GradualFlashlightRadiusEndTimeMs must be >= section start.");
+
+                        if (section.EndTime >= 0 && settings.GradualFlashlightRadiusEndTimeMs > section.EndTime)
+                            throw new InvalidOperationException($"Section {section.Id}: GradualFlashlightRadiusEndTimeMs must be within section range.");
                     }
                 }
 

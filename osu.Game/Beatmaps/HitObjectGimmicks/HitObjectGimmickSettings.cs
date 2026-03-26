@@ -24,6 +24,7 @@ namespace osu.Game.Beatmaps.HitObjectGimmicks
         public float GreatOffsetPenaltyHP { get; set; } = float.NaN;
 
         public bool EnableDifficultyOverrides { get; set; }
+        public bool AllowUnsafeDifficultyOverrideValues { get; set; }
         public float SectionCircleSize { get; set; } = float.NaN;
         public float SectionApproachRate { get; set; } = float.NaN;
         public float SectionOverallDifficulty { get; set; } = float.NaN;
@@ -32,5 +33,6 @@ namespace osu.Game.Beatmaps.HitObjectGimmicks
         public bool ForceNoApproachCircle { get; set; }
         public bool ForceHardRock { get; set; }
         public bool ForceFlashlight { get; set; }
+        public float FlashlightRadius { get; set; } = float.NaN;
     }
 }

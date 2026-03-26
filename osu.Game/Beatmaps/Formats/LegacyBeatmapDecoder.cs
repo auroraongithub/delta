@@ -689,6 +689,7 @@ namespace osu.Game.Beatmaps.Formats
                         case "GreatOffsetThresholdMs": section.Settings.GreatOffsetThresholdMs = Parsing.ParseFloat(value); break;
                         case "GreatOffsetPenaltyHP": section.Settings.GreatOffsetPenaltyHP = Parsing.ParseFloat(value); break;
                         case "EnableDifficultyOverrides": section.Settings.EnableDifficultyOverrides = parseBool(value); break;
+                        case "AllowUnsafeDifficultyOverrideValues": section.Settings.AllowUnsafeDifficultyOverrideValues = parseBool(value); break;
                         case "DifficultyOverrideStartWithBeatmapValues": section.Settings.DifficultyOverrideStartWithBeatmapValues = parseBool(value); break;
                         case "EnableGradualDifficultyChange": section.Settings.EnableGradualDifficultyChange = parseBool(value); break;
                         case "GradualDifficultyChangeEndTimeMs": section.Settings.GradualDifficultyChangeEndTimeMs = Parsing.ParseFloat(value); break;
@@ -700,6 +701,9 @@ namespace osu.Game.Beatmaps.Formats
                         case "ForceNoApproachCircle": section.Settings.ForceNoApproachCircle = parseBool(value); break;
                         case "ForceHardRock": section.Settings.ForceHardRock = parseBool(value); break;
                         case "ForceFlashlight": section.Settings.ForceFlashlight = parseBool(value); break;
+                        case "FlashlightRadius": section.Settings.FlashlightRadius = Parsing.ParseFloat(value); break;
+                        case "EnableGradualFlashlightRadiusChange": section.Settings.EnableGradualFlashlightRadiusChange = parseBool(value); break;
+                        case "GradualFlashlightRadiusEndTimeMs": section.Settings.GradualFlashlightRadiusEndTimeMs = Parsing.ParseFloat(value); break;
                         case "ForceDoubleTime": section.Settings.ForceDoubleTime = parseBool(value); break;
                         case "ForceSingleTap": section.Settings.ForceSingleTap = parseBool(value); break;
                         case "ForceAlternate": section.Settings.ForceAlternate = parseBool(value); break;
@@ -829,6 +833,9 @@ namespace osu.Game.Beatmaps.Formats
                         case "EnableDifficultyOverrides":
                             entry.Settings.EnableDifficultyOverrides = parseBool(value);
                             break;
+                        case "AllowUnsafeDifficultyOverrideValues":
+                            entry.Settings.AllowUnsafeDifficultyOverrideValues = parseBool(value);
+                            break;
                         case "SectionCircleSize":
                             entry.Settings.SectionCircleSize = Parsing.ParseFloat(value);
                             break;
@@ -849,6 +856,9 @@ namespace osu.Game.Beatmaps.Formats
                             break;
                         case "ForceFlashlight":
                             entry.Settings.ForceFlashlight = parseBool(value);
+                            break;
+                        case "FlashlightRadius":
+                            entry.Settings.FlashlightRadius = Parsing.ParseFloat(value);
                             break;
                     }
                 }

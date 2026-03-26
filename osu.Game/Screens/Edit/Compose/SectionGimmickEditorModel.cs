@@ -131,7 +131,11 @@ namespace osu.Game.Screens.Edit.Compose
 
         public void SetSelectedSetting(Action<SectionGimmickSettings> settingMutation)
         {
-            mutateSelectedSection(section => settingMutation(section.Settings));
+            mutateSelectedSection(section =>
+            {
+                settingMutation(section.Settings);
+                SectionGimmickValueClamper.ClampSectionSettingsInPlace(section.Settings);
+            });
         }
 
         public void CopySelectedSettings()
@@ -287,6 +291,7 @@ namespace osu.Game.Screens.Edit.Compose
                 GreatOffsetThresholdMs = settings.GreatOffsetThresholdMs,
                 GreatOffsetPenaltyHP = settings.GreatOffsetPenaltyHP,
                 EnableDifficultyOverrides = settings.EnableDifficultyOverrides,
+                AllowUnsafeDifficultyOverrideValues = settings.AllowUnsafeDifficultyOverrideValues,
                 DifficultyOverrideStartWithBeatmapValues = settings.DifficultyOverrideStartWithBeatmapValues,
                 EnableGradualDifficultyChange = settings.EnableGradualDifficultyChange,
                 GradualDifficultyChangeEndTimeMs = settings.GradualDifficultyChangeEndTimeMs,
@@ -298,6 +303,9 @@ namespace osu.Game.Screens.Edit.Compose
                 ForceNoApproachCircle = settings.ForceNoApproachCircle,
                 ForceHardRock = settings.ForceHardRock,
                 ForceFlashlight = settings.ForceFlashlight,
+                FlashlightRadius = settings.FlashlightRadius,
+                EnableGradualFlashlightRadiusChange = settings.EnableGradualFlashlightRadiusChange,
+                GradualFlashlightRadiusEndTimeMs = settings.GradualFlashlightRadiusEndTimeMs,
                 ForceDoubleTime = settings.ForceDoubleTime,
                 ForceSingleTap = settings.ForceSingleTap,
                 ForceAlternate = settings.ForceAlternate,
