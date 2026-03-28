@@ -308,9 +308,16 @@ namespace osu.Game.Rulesets.Osu.Edit
                 return;
 
             selectionUpdateScheduled = true;
+
             Scheduler.AddOnce(() =>
             {
                 selectionUpdateScheduled = false;
+
+                // Commit any in-progress text edits before selection state is refreshed.
+                // This ensures clicking the playfield (which deselects) persists typed values,
+                // matching the behavior of pressing enter/clicking off the textbox.
+                GetContainingFocusManager()?.ChangeFocus(null);
+
                 updateFromSelection();
             });
         }
