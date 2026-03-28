@@ -4,6 +4,7 @@
 #nullable disable
 
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
@@ -16,6 +17,7 @@ using osu.Game.Extensions;
 using osu.Game.IO.Serialization;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Edit;
+using osu.Game.Beatmaps.HitObjectGimmicks;
 using osu.Game.Screens.Edit.Compose.Components.Timeline;
 
 namespace osu.Game.Screens.Edit.Compose
@@ -187,12 +189,23 @@ namespace osu.Game.Screens.Edit.Compose
 
             var objects = clipboard.Value.Deserialize<ClipboardContent>().HitObjects;
 
+            var sourceGimmicks = HitObjectGimmickBindingUtils.CloneGimmicks(EditorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
+            var sourceLookupByObjectId = HitObjectGimmickBindingUtils.CreateLookupByObjectId(sourceGimmicks);
+            var sourceLookupByLegacy = HitObjectGimmickBindingUtils.CreateLookupByLegacyKey(sourceGimmicks);
+            var copiedSettingsByObject = new Dictionary<osu.Game.Rulesets.Objects.HitObject, HitObjectGimmickSettings>();
+
             Debug.Assert(objects.Any());
 
             double timeOffset = beatSnapProvider.SnapTime(clock.CurrentTime) - objects.Min(o => o.StartTime);
 
             foreach (var h in objects)
+            {
+                if (HitObjectGimmickBindingUtils.TryGetSettings(h, sourceLookupByObjectId, sourceLookupByLegacy, out var sourceSettings))
+                    copiedSettingsByObject[h] = HitObjectGimmickBindingUtils.CloneSettings(sourceSettings);
+
                 h.StartTime += timeOffset;
+                h.GimmickObjectId = HitObjectGimmickBindingUtils.GenerateNewObjectId();
+            }
 
             EditorBeatmap.BeginChange();
 
@@ -200,6 +213,29 @@ namespace osu.Game.Screens.Edit.Compose
 
             EditorBeatmap.AddRange(objects);
             EditorBeatmap.SelectedHitObjects.AddRange(objects);
+
+            var pastedEntries = new BeatmapHitObjectGimmicks();
+
+            foreach (var h in objects)
+            {
+                if (!copiedSettingsByObject.TryGetValue(h, out var sourceSettings))
+                    continue;
+
+                pastedEntries.Entries.Add(new HitObjectGimmickEntry
+                {
+                    ObjectId = h.GimmickObjectId,
+                    StartTime = h.StartTime,
+                    ComboIndexWithOffsets = (h as osu.Game.Rulesets.Objects.Types.IHasComboInformation)?.ComboIndexWithOffsets ?? 0,
+                    Settings = HitObjectGimmickBindingUtils.CloneSettings(sourceSettings),
+                });
+            }
+
+            if (pastedEntries.Entries.Count > 0)
+            {
+                var merged = HitObjectGimmickBindingUtils.CloneGimmicks(EditorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
+                merged.Entries.AddRange(pastedEntries.Entries);
+                EditorBeatmap.HitObjectGimmicks = merged;
+            }
 
             EditorBeatmap.EndChange();
         }

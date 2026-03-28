@@ -33,6 +33,12 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                 settings.SectionOverallDifficulty = ClampOverallDifficulty(settings.SectionOverallDifficulty);
             }
 
+            if (!settings.AllowUnsafeStackLeniencyOverrideValues)
+                settings.SectionStackLeniency = ClampStackLeniency(settings.SectionStackLeniency);
+
+            if (!settings.AllowUnsafeTickRateOverrideValues)
+                settings.SectionTickRate = ClampTickRate(settings.SectionTickRate);
+
             settings.GradualDifficultyChangeEndTimeMs = clampMin(settings.GradualDifficultyChangeEndTimeMs, 0);
             settings.SectionCircleSizeStartTimeMs = clampMin(settings.SectionCircleSizeStartTimeMs, -1);
             settings.SectionCircleSizeEndTimeMs = clampMin(settings.SectionCircleSizeEndTimeMs, -1);
@@ -79,6 +85,12 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                 settings.SectionOverallDifficulty = ClampOverallDifficulty(settings.SectionOverallDifficulty);
             }
 
+            if (!settings.AllowUnsafeStackLeniencyOverrideValues)
+                settings.SectionStackLeniency = ClampStackLeniency(settings.SectionStackLeniency);
+
+            if (!settings.AllowUnsafeTickRateOverrideValues)
+                settings.SectionTickRate = ClampTickRate(settings.SectionTickRate);
+
             settings.FlashlightRadius = clampMinMax(settings.FlashlightRadius, 20f, 400f);
         }
 
@@ -90,6 +102,12 @@ namespace osu.Game.Beatmaps.SectionGimmicks
 
         public static float ClampOverallDifficulty(float value)
             => clampMinMax(value, 0, 11);
+
+        public static float ClampStackLeniency(float value)
+            => clampMinMax(value, 0, 1);
+
+        public static double ClampTickRate(double value)
+            => double.IsNaN(value) ? value : Math.Max(0, value);
 
         private static int clampCountLimit(int value)
             => Math.Max(-1, value);

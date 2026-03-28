@@ -23,8 +23,10 @@ namespace osu.Game.Beatmaps.ControlPoints
         /// </summary>
         public readonly BindableDouble SliderVelocityBindable = new BindableDouble(1)
         {
-            MinValue = 0.1,
-            MaxValue = 10
+            MinValue = 0,
+            // Keep finite to avoid decimal overflow in proportional slider calculations.
+            // This effectively removes the old 10x cap while remaining stable.
+            MaxValue = 1000
         };
 
         /// <summary>

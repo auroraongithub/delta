@@ -16,6 +16,7 @@ using osu.Game.Audio;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Beatmaps.Formats;
+using osu.Game.Beatmaps.HitObjectGimmicks;
 using osu.Game.Beatmaps.Legacy;
 using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.IO;
@@ -350,6 +351,45 @@ namespace osu.Game.Tests.Beatmaps.Formats
         }
 
         [Test]
+        public void TestEncodeDecodeSectionGimmicksPersistsStackLeniencyAndTickRateOverrides()
+        {
+            var beatmap = new Beatmap
+            {
+                SectionGimmicks = new BeatmapSectionGimmicks
+                {
+                    Sections =
+                    {
+                        new SectionGimmickSection
+                        {
+                            Id = 0,
+                            StartTime = 0,
+                            EndTime = 1500,
+                            Settings = new SectionGimmickSettings
+                            {
+                                EnableDifficultyOverrides = true,
+                                AllowUnsafeStackLeniencyOverrideValues = true,
+                                SectionStackLeniency = -0.2f,
+                                AllowUnsafeTickRateOverrideValues = true,
+                                SectionTickRate = -1.5,
+                            }
+                        }
+                    }
+                }
+            };
+
+            var decodedAfterEncode = decodeFromLegacy(encodeToLegacy((beatmap, new TestLegacySkin(beatmaps_resource_store, string.Empty))), string.Empty);
+
+            Assert.That(decodedAfterEncode.beatmap.SectionGimmicks, Is.Not.Null);
+            Assert.That(decodedAfterEncode.beatmap.SectionGimmicks.Sections.Count, Is.EqualTo(1));
+
+            var section = decodedAfterEncode.beatmap.SectionGimmicks.Sections[0];
+            Assert.That(section.Settings.AllowUnsafeStackLeniencyOverrideValues, Is.True);
+            Assert.That(section.Settings.SectionStackLeniency, Is.EqualTo(-0.2f).Within(0.001f));
+            Assert.That(section.Settings.AllowUnsafeTickRateOverrideValues, Is.True);
+            Assert.That(section.Settings.SectionTickRate, Is.EqualTo(-1.5).Within(0.001));
+        }
+
+        [Test]
         public void TestEncodeDecodeSectionGimmicksPersistsGradualDifficultyOverrides()
         {
             var beatmap = new Beatmap
@@ -499,6 +539,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                     {
                         new osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickEntry
                         {
+                            ObjectId = 12345,
                             StartTime = 1000,
                             ComboIndexWithOffsets = 2,
                             Settings = new osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings
@@ -516,9 +557,90 @@ namespace osu.Game.Tests.Beatmaps.Formats
             Assert.That(decodedAfterEncode.beatmap.HitObjectGimmicks.Entries.Count, Is.EqualTo(1));
 
             var entry = decodedAfterEncode.beatmap.HitObjectGimmicks.Entries[0];
+            Assert.That(entry.ObjectId, Is.EqualTo(12345));
             Assert.That(entry.StartTime, Is.EqualTo(1000).Within(0.001));
             Assert.That(entry.ComboIndexWithOffsets, Is.EqualTo(2));
             Assert.That(entry.Settings.ForceNoApproachCircle, Is.True);
+        }
+
+        [Test]
+        public void TestEncodeDecodeHitObjectGimmicksPersistsStackLeniencyAndTickRateOverrides()
+        {
+            var beatmap = new Beatmap
+            {
+                HitObjectGimmicks = new osu.Game.Beatmaps.HitObjectGimmicks.BeatmapHitObjectGimmicks
+                {
+                    Entries =
+                    {
+                        new osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickEntry
+                        {
+                            ObjectId = 12345,
+                            StartTime = 1000,
+                            ComboIndexWithOffsets = 2,
+                            Settings = new osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings
+                            {
+                                EnableDifficultyOverrides = true,
+                                AllowUnsafeStackLeniencyOverrideValues = true,
+                                SectionStackLeniency = -0.5f,
+                                AllowUnsafeTickRateOverrideValues = true,
+                                SectionTickRate = -2,
+                            }
+                        }
+                    }
+                }
+            };
+
+            var decodedAfterEncode = decodeFromLegacy(encodeToLegacy((beatmap, new TestLegacySkin(beatmaps_resource_store, string.Empty))), string.Empty);
+
+            Assert.That(decodedAfterEncode.beatmap.HitObjectGimmicks, Is.Not.Null);
+            Assert.That(decodedAfterEncode.beatmap.HitObjectGimmicks.Entries.Count, Is.EqualTo(1));
+
+            var entry = decodedAfterEncode.beatmap.HitObjectGimmicks.Entries[0];
+            Assert.That(entry.ObjectId, Is.EqualTo(12345));
+            Assert.That(entry.Settings.AllowUnsafeStackLeniencyOverrideValues, Is.True);
+            Assert.That(entry.Settings.SectionStackLeniency, Is.EqualTo(-0.5f).Within(0.001f));
+            Assert.That(entry.Settings.AllowUnsafeTickRateOverrideValues, Is.True);
+            Assert.That(entry.Settings.SectionTickRate, Is.EqualTo(-2).Within(0.001));
+        }
+
+        [Test]
+        public void TestEncodeDecodeHitObjectGimmicksPersistsHighSliderVelocityViaObjectBinding()
+        {
+            var beatmap = new Beatmap<OsuHitObject>
+            {
+                HitObjects =
+                {
+                    new Slider
+                    {
+                        StartTime = 1000,
+                        GimmickObjectId = 777,
+                        Path = new SliderPath(PathType.LINEAR, new[] { Vector2.Zero, new Vector2(200, 0) }, 200),
+                        SliderVelocityMultiplier = 250,
+                    }
+                },
+                HitObjectGimmicks = new BeatmapHitObjectGimmicks
+                {
+                    Entries =
+                    {
+                        new HitObjectGimmickEntry
+                        {
+                            ObjectId = 777,
+                            StartTime = 1000,
+                            ComboIndexWithOffsets = 0,
+                            Settings = new HitObjectGimmickSettings
+                            {
+                                ForceNoApproachCircle = true,
+                            }
+                        }
+                    }
+                }
+            };
+
+            var decodedAfterEncode = decodeFromLegacy(encodeToLegacy((beatmap, new TestLegacySkin(beatmaps_resource_store, string.Empty))), string.Empty);
+
+            var slider = decodedAfterEncode.beatmap.HitObjects.OfType<Slider>().Single();
+            Assert.That(slider.SliderVelocityMultiplier, Is.EqualTo(250).Within(0.001));
+            Assert.That(decodedAfterEncode.beatmap.HitObjectGimmicks.Entries.Single().ObjectId, Is.EqualTo(777));
         }
 
         [Test]

@@ -28,6 +28,10 @@ namespace osu.Game.Beatmaps.HitObjectGimmicks
         public float SectionCircleSize { get; set; } = float.NaN;
         public float SectionApproachRate { get; set; } = float.NaN;
         public float SectionOverallDifficulty { get; set; } = float.NaN;
+        public bool AllowUnsafeStackLeniencyOverrideValues { get; set; }
+        public float SectionStackLeniency { get; set; } = float.NaN;
+        public bool AllowUnsafeTickRateOverrideValues { get; set; }
+        public double SectionTickRate { get; set; } = double.NaN;
 
         public bool ForceHidden { get; set; }
         public bool ForceNoApproachCircle { get; set; }

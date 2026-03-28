@@ -374,6 +374,7 @@ namespace osu.Game.Screens.Edit
 
                     return new HitObjectGimmickEntry
                     {
+                        ObjectId = e.ObjectId,
                         StartTime = e.StartTime,
                         ComboIndexWithOffsets = e.ComboIndexWithOffsets,
                         Settings = new HitObjectGimmickSettings
@@ -397,6 +398,10 @@ namespace osu.Game.Screens.Edit
                             SectionCircleSize = settings.SectionCircleSize,
                             SectionApproachRate = settings.SectionApproachRate,
                             SectionOverallDifficulty = settings.SectionOverallDifficulty,
+                            AllowUnsafeStackLeniencyOverrideValues = settings.AllowUnsafeStackLeniencyOverrideValues,
+                            SectionStackLeniency = settings.SectionStackLeniency,
+                            AllowUnsafeTickRateOverrideValues = settings.AllowUnsafeTickRateOverrideValues,
+                            SectionTickRate = settings.SectionTickRate,
                             ForceHidden = settings.ForceHidden,
                             ForceNoApproachCircle = settings.ForceNoApproachCircle,
                             ForceHardRock = settings.ForceHardRock,

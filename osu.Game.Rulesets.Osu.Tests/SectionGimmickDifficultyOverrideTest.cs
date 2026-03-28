@@ -2,9 +2,13 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using NUnit.Framework;
+using System.Linq;
 using osu.Game.Beatmaps;
+using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Beatmaps.HitObjectGimmicks;
 using osu.Game.Beatmaps.SectionGimmicks;
+using osu.Game.Rulesets.Objects;
+using osu.Game.Rulesets.Objects.Types;
 using osu.Game.Rulesets.Osu.Beatmaps;
 using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.Osu.Scoring;
@@ -566,8 +570,12 @@ namespace osu.Game.Rulesets.Osu.Tests
             target.UpdateComboInformation(null);
             other.UpdateComboInformation(target);
 
+            target.GimmickObjectId = 1001;
+            other.GimmickObjectId = 2002;
+
             beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
             {
+                ObjectId = target.GimmickObjectId,
                 StartTime = target.StartTime,
                 ComboIndexWithOffsets = target.ComboIndexWithOffsets,
                 Settings = new HitObjectGimmickSettings
@@ -628,8 +636,12 @@ namespace osu.Game.Rulesets.Osu.Tests
             target.UpdateComboInformation(null);
             other.UpdateComboInformation(target);
 
+            target.GimmickObjectId = 3003;
+            other.GimmickObjectId = 4004;
+
             beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
             {
+                ObjectId = target.GimmickObjectId,
                 StartTime = target.StartTime,
                 ComboIndexWithOffsets = target.ComboIndexWithOffsets,
                 Settings = new HitObjectGimmickSettings
@@ -645,6 +657,91 @@ namespace osu.Game.Rulesets.Osu.Tests
             Assert.That(target.TimePreempt, Is.EqualTo(450).Within(0.0001));
             // other should use section override AR8
             Assert.That(other.TimePreempt, Is.EqualTo(750).Within(0.0001));
+        }
+
+        [Test]
+        public void TestSectionTickRateOverrideAppliesToSliderTickGeneration()
+        {
+            var slider = new Slider
+            {
+                StartTime = 1000,
+                Position = new Vector2(100, 100),
+                Path = new SliderPath(PathType.LINEAR, new[]
+                {
+                    Vector2.Zero,
+                    new Vector2(300, 0),
+                }, 300),
+                RepeatCount = 0,
+            };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.Difficulty.SliderTickRate = 1;
+            beatmap.HitObjects.Add(slider);
+
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableDifficultyOverrides = true,
+                    SectionTickRate = 4,
+                }
+            });
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+
+            processor.PostProcess();
+
+            Assert.That(slider.NestedHitObjects.OfType<SliderTick>().Count(), Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void TestUnsafeNegativeTickRateOverrideIsAppliedWhenEnabled()
+        {
+            var slider = new Slider
+            {
+                StartTime = 1000,
+                Position = new Vector2(100, 100),
+                Path = new SliderPath(PathType.LINEAR, new[]
+                {
+                    Vector2.Zero,
+                    new Vector2(300, 0),
+                }, 300),
+                RepeatCount = 0,
+            };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.Difficulty.SliderTickRate = 1;
+            beatmap.HitObjects.Add(slider);
+
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableDifficultyOverrides = true,
+                    AllowUnsafeTickRateOverrideValues = true,
+                    SectionTickRate = -2,
+                }
+            });
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+
+            processor.PostProcess();
+
+            Assert.That(slider.NestedHitObjects.OfType<SliderTick>().Count(), Is.EqualTo(0));
         }
 
         [Test]
@@ -722,8 +819,12 @@ namespace osu.Game.Rulesets.Osu.Tests
             target.UpdateComboInformation(null);
             other.UpdateComboInformation(target);
 
+            target.GimmickObjectId = 5005;
+            other.GimmickObjectId = 6006;
+
             beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
             {
+                ObjectId = target.GimmickObjectId,
                 StartTime = target.StartTime,
                 ComboIndexWithOffsets = target.ComboIndexWithOffsets,
                 Settings = new HitObjectGimmickSettings

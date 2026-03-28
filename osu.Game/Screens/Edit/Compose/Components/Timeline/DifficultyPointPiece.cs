@@ -85,8 +85,10 @@ namespace osu.Game.Screens.Edit.Compose.Components.Timeline
                             sliderVelocitySlider = new IndeterminateSliderWithTextBoxInput<double>("Velocity", new BindableDouble(1)
                             {
                                 Precision = 0.01,
-                                MinValue = 0.1,
-                                MaxValue = 10
+                                MinValue = 0,
+                                // Avoid using unbounded max (double.MaxValue): slider proportional calculations can overflow
+                                // bindable decimal math on drag start. This is effectively uncapped vs old 10x cap.
+                                MaxValue = 1000
                             })
                             {
                                 KeyboardStep = 0.1f

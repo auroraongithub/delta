@@ -417,7 +417,7 @@ namespace osu.Game.Beatmaps.Formats
         {
             var hitObjectGimmicks = beatmap.HitObjectGimmicks;
 
-            if (hitObjectGimmicks == null || hitObjectGimmicks.Entries.Count == 0)
+            if (hitObjectGimmicks == null)
                 return;
 
             writer.WriteLine("[BeatmapHitObjectGimmicks]");
@@ -425,8 +425,12 @@ namespace osu.Game.Beatmaps.Formats
             foreach (var entry in hitObjectGimmicks.Entries.OrderBy(e => e.StartTime).ThenBy(e => e.ComboIndexWithOffsets))
             {
                 var pairs = serialiseHitObjectSettings(entry.Settings);
-                writer.WriteLine(FormattableString.Invariant($"{entry.StartTime},{entry.ComboIndexWithOffsets},{string.Join('|', pairs)}"));
+                if (entry.ObjectId.HasValue)
+                    writer.WriteLine(FormattableString.Invariant($"{entry.StartTime},{entry.ComboIndexWithOffsets},ObjectId={entry.ObjectId.Value}|{string.Join('|', pairs)}"));
+                else
+                    writer.WriteLine(FormattableString.Invariant($"{entry.StartTime},{entry.ComboIndexWithOffsets},{string.Join('|', pairs)}"));
             }
+
         }
 
         private static IEnumerable<string> serialiseSettings(SectionGimmickSettings settings)
@@ -484,6 +488,10 @@ namespace osu.Game.Beatmaps.Formats
             if (settings.SectionOverallDifficultyStartTimeMs >= 0) yield return $"SectionOverallDifficultyStartTimeMs={settings.SectionOverallDifficultyStartTimeMs.ToString(CultureInfo.InvariantCulture)}";
             if (settings.SectionOverallDifficultyEndTimeMs >= 0) yield return $"SectionOverallDifficultyEndTimeMs={settings.SectionOverallDifficultyEndTimeMs.ToString(CultureInfo.InvariantCulture)}";
             if (settings.EnableGradualSectionOverallDifficultyChange) yield return "EnableGradualSectionOverallDifficultyChange=True";
+            if (settings.AllowUnsafeStackLeniencyOverrideValues) yield return "AllowUnsafeStackLeniencyOverrideValues=True";
+            if (!float.IsNaN(settings.SectionStackLeniency)) yield return $"SectionStackLeniency={settings.SectionStackLeniency.ToString(CultureInfo.InvariantCulture)}";
+            if (settings.AllowUnsafeTickRateOverrideValues) yield return "AllowUnsafeTickRateOverrideValues=True";
+            if (!double.IsNaN(settings.SectionTickRate)) yield return $"SectionTickRate={settings.SectionTickRate.ToString(CultureInfo.InvariantCulture)}";
             if (settings.ForceHidden) yield return "ForceHidden=True";
             if (settings.ForceNoApproachCircle) yield return "ForceNoApproachCircle=True";
             if (settings.ForceHardRock) yield return "ForceHardRock=True";
@@ -560,6 +568,10 @@ namespace osu.Game.Beatmaps.Formats
             if (!float.IsNaN(settings.SectionCircleSize)) yield return $"SectionCircleSize={settings.SectionCircleSize.ToString(CultureInfo.InvariantCulture)}";
             if (!float.IsNaN(settings.SectionApproachRate)) yield return $"SectionApproachRate={settings.SectionApproachRate.ToString(CultureInfo.InvariantCulture)}";
             if (!float.IsNaN(settings.SectionOverallDifficulty)) yield return $"SectionOverallDifficulty={settings.SectionOverallDifficulty.ToString(CultureInfo.InvariantCulture)}";
+            if (settings.AllowUnsafeStackLeniencyOverrideValues) yield return "AllowUnsafeStackLeniencyOverrideValues=True";
+            if (!float.IsNaN(settings.SectionStackLeniency)) yield return $"SectionStackLeniency={settings.SectionStackLeniency.ToString(CultureInfo.InvariantCulture)}";
+            if (settings.AllowUnsafeTickRateOverrideValues) yield return "AllowUnsafeTickRateOverrideValues=True";
+            if (!double.IsNaN(settings.SectionTickRate)) yield return $"SectionTickRate={settings.SectionTickRate.ToString(CultureInfo.InvariantCulture)}";
 
             if (settings.ForceHidden) yield return "ForceHidden=True";
             if (settings.ForceNoApproachCircle) yield return "ForceNoApproachCircle=True";

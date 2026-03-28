@@ -63,6 +63,10 @@ namespace osu.Game.Beatmaps.SectionGimmicks
         public float SectionOverallDifficultyStartTimeMs { get; set; } = -1;
         public float SectionOverallDifficultyEndTimeMs { get; set; } = -1;
         public bool EnableGradualSectionOverallDifficultyChange { get; set; }
+        public bool AllowUnsafeStackLeniencyOverrideValues { get; set; }
+        public float SectionStackLeniency { get; set; } = float.NaN;
+        public bool AllowUnsafeTickRateOverrideValues { get; set; }
+        public double SectionTickRate { get; set; } = double.NaN;
 
         public bool ForceHidden { get; set; }
         public bool ForceNoApproachCircle { get; set; }

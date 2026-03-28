@@ -114,7 +114,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FormNumberBox gradualDifficultyChangeEndTime = null!;
         private FormCheckBox keepDifficultyOverridesAfterSection = null!;
         private RoundedButton inheritFromPreviousButton = null!;
-        private FormNumberBox sectionCircleSize = null!;
+        private FormSliderBar<float> sectionCircleSize = null!;
         private FormCheckBox enableSectionCircleSizeWindow = null!;
         private FormNumberBox sectionCircleSizeStartTime = null!;
         private FormNumberBox sectionCircleSizeEndTime = null!;
@@ -122,7 +122,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private RoundedButton setSectionCircleSizeEndNowButton = null!;
         private FormCheckBox enableGradualSectionCircleSizeChange = null!;
         private FillFlowContainer sectionCircleSizeWindowFields = null!;
-        private FormNumberBox sectionApproachRate = null!;
+        private FormSliderBar<float> sectionApproachRate = null!;
         private FormCheckBox enableSectionApproachRateWindow = null!;
         private FormNumberBox sectionApproachRateStartTime = null!;
         private FormNumberBox sectionApproachRateEndTime = null!;
@@ -130,7 +130,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private RoundedButton setSectionApproachRateEndNowButton = null!;
         private FormCheckBox enableGradualSectionApproachRateChange = null!;
         private FillFlowContainer sectionApproachRateWindowFields = null!;
-        private FormNumberBox sectionOverallDifficulty = null!;
+        private FormSliderBar<float> sectionOverallDifficulty = null!;
         private FormCheckBox enableSectionOverallDifficultyWindow = null!;
         private FormNumberBox sectionOverallDifficultyStartTime = null!;
         private FormNumberBox sectionOverallDifficultyEndTime = null!;
@@ -138,6 +138,10 @@ namespace osu.Game.Rulesets.Osu.Edit
         private RoundedButton setSectionOverallDifficultyEndNowButton = null!;
         private FormCheckBox enableGradualSectionOverallDifficultyChange = null!;
         private FillFlowContainer sectionOverallDifficultyWindowFields = null!;
+        private FormCheckBox allowUnsafeStackLeniencyOverrideValues = null!;
+        private FormSliderBar<float> sectionStackLeniency = null!;
+        private FormCheckBox allowUnsafeTickRateOverrideValues = null!;
+        private FormSliderBar<double> sectionTickRate = null!;
 
         private FormCheckBox forceHidden = null!;
         private FormCheckBox forceNoApproachCircle = null!;
@@ -537,9 +541,19 @@ namespace osu.Game.Rulesets.Osu.Edit
                                 Spacing = new Vector2(5),
                                 Children = new Drawable[]
                                 {
-                                    sectionCircleSize = new FormNumberBox(allowDecimals: true)
+                                    sectionCircleSize = new FormSliderBar<float>
                                     {
                                         Caption = "CS (0-11)",
+                                        Current = new BindableFloat
+                                        {
+                                            // Keep an extended edit range so unsafe mode can input values past normal limits.
+                                            // Safe mode still clamps via SectionGimmickValueClamper.
+                                            MinValue = -1000,
+                                            MaxValue = 1000,
+                                            Precision = 0.1f,
+                                        },
+                                        TransferValueOnCommit = true,
+                                        CommitEmptyAsNaN = false,
                                         TabbableContentContainer = this,
                                     },
                                     enableSectionCircleSizeWindow = new FormCheckBox
@@ -608,9 +622,17 @@ namespace osu.Game.Rulesets.Osu.Edit
                                             },
                                         }
                                     },
-                                    sectionApproachRate = new FormNumberBox(allowDecimals: true)
+                                    sectionApproachRate = new FormSliderBar<float>
                                     {
                                         Caption = "AR (<= 11)",
+                                        Current = new BindableFloat
+                                        {
+                                            MinValue = -1000,
+                                            MaxValue = 1000,
+                                            Precision = 0.1f,
+                                        },
+                                        TransferValueOnCommit = true,
+                                        CommitEmptyAsNaN = false,
                                         TabbableContentContainer = this,
                                     },
                                     enableSectionApproachRateWindow = new FormCheckBox
@@ -679,9 +701,17 @@ namespace osu.Game.Rulesets.Osu.Edit
                                             },
                                         }
                                     },
-                                    sectionOverallDifficulty = new FormNumberBox(allowDecimals: true)
+                                    sectionOverallDifficulty = new FormSliderBar<float>
                                     {
                                         Caption = "OD (0-11)",
+                                        Current = new BindableFloat
+                                        {
+                                            MinValue = -1000,
+                                            MaxValue = 1000,
+                                            Precision = 0.1f,
+                                        },
+                                        TransferValueOnCommit = true,
+                                        CommitEmptyAsNaN = false,
                                         TabbableContentContainer = this,
                                     },
                                     enableSectionOverallDifficultyWindow = new FormCheckBox
@@ -749,6 +779,40 @@ namespace osu.Game.Rulesets.Osu.Edit
                                                 }
                                             },
                                         }
+                                    },
+                                    allowUnsafeStackLeniencyOverrideValues = new FormCheckBox
+                                    {
+                                        Caption = "Allow stack leniency values past limits (unsafe)",
+                                    },
+                                    sectionStackLeniency = new FormSliderBar<float>
+                                    {
+                                        Caption = "Stack Leniency (0-1)",
+                                        Current = new BindableFloat
+                                        {
+                                            MinValue = -5,
+                                            MaxValue = 5,
+                                            Precision = 0.01f,
+                                        },
+                                        TransferValueOnCommit = true,
+                                        CommitEmptyAsNaN = false,
+                                        TabbableContentContainer = this,
+                                    },
+                                    allowUnsafeTickRateOverrideValues = new FormCheckBox
+                                    {
+                                        Caption = "Allow tick rate values past limits (unsafe)",
+                                    },
+                                    sectionTickRate = new FormSliderBar<double>
+                                    {
+                                        Caption = "Tick Rate (>= 0)",
+                                        Current = new BindableDouble
+                                        {
+                                            MinValue = -20,
+                                            MaxValue = 20,
+                                            Precision = 0.01,
+                                        },
+                                        TransferValueOnCommit = true,
+                                        CommitEmptyAsNaN = false,
+                                        TabbableContentContainer = this,
                                     },
                                     allowUnsafeDifficultyOverrideValues = new FormCheckBox
                                     {
@@ -1023,6 +1087,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
             bindModelEvents();
             bindControlEvents();
+            updateDifficultyOverrideDefaults();
 
             updateSectionDropdown();
             updateControlsFromSelection();
@@ -1118,6 +1183,20 @@ namespace osu.Game.Rulesets.Osu.Edit
             bindFloatSetting(greatOffsetPenaltyHp, (s, v) => s.GreatOffsetPenaltyHP = v, v => Math.Min(0f, v));
 
             enableDifficultyOverrides.Current.BindValueChanged(v => mutateSetting(s => s.EnableDifficultyOverrides = v.NewValue));
+            enableDifficultyOverrides.Current.BindValueChanged(v =>
+            {
+                if (updatingControls || !v.NewValue)
+                    return;
+
+                mutateSetting(s =>
+                {
+                    if (float.IsNaN(s.SectionStackLeniency))
+                        s.SectionStackLeniency = editorBeatmap.StackLeniency;
+
+                    if (double.IsNaN(s.SectionTickRate))
+                        s.SectionTickRate = editorBeatmap.Difficulty.SliderTickRate;
+                });
+            });
             allowUnsafeDifficultyOverrideValues.Current.BindValueChanged(v =>
             {
                 if (!updatingControls && v.NewValue)
@@ -1125,25 +1204,47 @@ namespace osu.Game.Rulesets.Osu.Edit
 
                 mutateSetting(s => s.AllowUnsafeDifficultyOverrideValues = v.NewValue);
             });
+            allowUnsafeStackLeniencyOverrideValues.Current.BindValueChanged(v =>
+            {
+                if (!updatingControls && v.NewValue)
+                    postUnsafeDifficultyWarning();
+
+                mutateSetting(s => s.AllowUnsafeStackLeniencyOverrideValues = v.NewValue);
+            });
+            allowUnsafeTickRateOverrideValues.Current.BindValueChanged(v =>
+            {
+                if (!updatingControls && v.NewValue)
+                    postUnsafeDifficultyWarning();
+
+                mutateSetting(s => s.AllowUnsafeTickRateOverrideValues = v.NewValue);
+            });
             difficultyOverrideStartWithBeatmapValues.Current.BindValueChanged(v => mutateSetting(s => s.DifficultyOverrideStartWithBeatmapValues = v.NewValue));
             enableGradualDifficultyChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualDifficultyChange = v.NewValue));
             bindFloatSetting(gradualDifficultyChangeEndTime, (s, v) => s.GradualDifficultyChangeEndTimeMs = v, v => Math.Max(0f, v));
             keepDifficultyOverridesAfterSection.Current.BindValueChanged(v => mutateSetting(s => s.KeepDifficultyOverridesAfterSection = v.NewValue));
-            bindFloatSetting(sectionCircleSize, (s, v) => s.SectionCircleSize = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampCircleSize(v));
+            bindSliderSetting(sectionCircleSize, (s, v) => s.SectionCircleSize = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampCircleSize(v));
             enableSectionCircleSizeWindow.Current.BindValueChanged(v => mutateSetting(s => s.EnableSectionCircleSizeWindow = v.NewValue));
             bindFloatSettingOnCommitOnly(sectionCircleSizeStartTime, (s, v) => s.SectionCircleSizeStartTimeMs = v, v => v < -1 ? -1 : v);
             bindFloatSettingOnCommitOnly(sectionCircleSizeEndTime, (s, v) => s.SectionCircleSizeEndTimeMs = v, v => v < -1 ? -1 : v);
             enableGradualSectionCircleSizeChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualSectionCircleSizeChange = v.NewValue));
-            bindFloatSetting(sectionApproachRate, (s, v) => s.SectionApproachRate = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampApproachRate(v));
+            bindSliderSetting(sectionApproachRate, (s, v) => s.SectionApproachRate = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampApproachRate(v));
             enableSectionApproachRateWindow.Current.BindValueChanged(v => mutateSetting(s => s.EnableSectionApproachRateWindow = v.NewValue));
             bindFloatSettingOnCommitOnly(sectionApproachRateStartTime, (s, v) => s.SectionApproachRateStartTimeMs = v, v => v < -1 ? -1 : v);
             bindFloatSettingOnCommitOnly(sectionApproachRateEndTime, (s, v) => s.SectionApproachRateEndTimeMs = v, v => v < -1 ? -1 : v);
             enableGradualSectionApproachRateChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualSectionApproachRateChange = v.NewValue));
-            bindFloatSetting(sectionOverallDifficulty, (s, v) => s.SectionOverallDifficulty = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampOverallDifficulty(v));
+            bindSliderSetting(sectionOverallDifficulty, (s, v) => s.SectionOverallDifficulty = v, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampOverallDifficulty(v));
             enableSectionOverallDifficultyWindow.Current.BindValueChanged(v => mutateSetting(s => s.EnableSectionOverallDifficultyWindow = v.NewValue));
             bindFloatSettingOnCommitOnly(sectionOverallDifficultyStartTime, (s, v) => s.SectionOverallDifficultyStartTimeMs = v, v => v < -1 ? -1 : v);
             bindFloatSettingOnCommitOnly(sectionOverallDifficultyEndTime, (s, v) => s.SectionOverallDifficultyEndTimeMs = v, v => v < -1 ? -1 : v);
             enableGradualSectionOverallDifficultyChange.Current.BindValueChanged(v => mutateSetting(s => s.EnableGradualSectionOverallDifficultyChange = v.NewValue));
+            bindSliderSetting(sectionStackLeniency, (s, v) => s.SectionStackLeniency = v, v => isUnsafeStackLeniencyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampStackLeniency(v));
+            bindSliderSetting(sectionTickRate, (s, v) => s.SectionTickRate = v, v => isUnsafeTickRateOverrideEnabled() ? v : SectionGimmickValueClamper.ClampTickRate(v));
+
+            sectionCircleSize.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionApproachRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionOverallDifficulty.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionStackLeniency.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionTickRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
 
             forceHidden.Current.BindValueChanged(v => mutateSetting(s => s.ForceHidden = v.NewValue));
             forceNoApproachCircle.Current.BindValueChanged(v => mutateSetting(s => s.ForceNoApproachCircle = v.NewValue));
@@ -1243,6 +1344,12 @@ namespace osu.Game.Rulesets.Osu.Edit
             }
             inheritFromPreviousButton.Enabled.Value = canInherit;
 
+            sectionCircleSize.Current.Disabled = !hasSelection;
+            sectionApproachRate.Current.Disabled = !hasSelection;
+            sectionOverallDifficulty.Current.Disabled = !hasSelection;
+            sectionStackLeniency.Current.Disabled = !hasSelection;
+            sectionTickRate.Current.Disabled = !hasSelection;
+
             updatingControls = true;
 
             if (selected != null)
@@ -1297,25 +1404,29 @@ namespace osu.Game.Rulesets.Osu.Edit
 
                 enableDifficultyOverrides.Current.Value = settings.EnableDifficultyOverrides;
                 allowUnsafeDifficultyOverrideValues.Current.Value = settings.AllowUnsafeDifficultyOverrideValues;
+                allowUnsafeStackLeniencyOverrideValues.Current.Value = settings.AllowUnsafeStackLeniencyOverrideValues;
+                allowUnsafeTickRateOverrideValues.Current.Value = settings.AllowUnsafeTickRateOverrideValues;
                 difficultyOverrideStartWithBeatmapValues.Current.Value = settings.DifficultyOverrideStartWithBeatmapValues;
                 enableGradualDifficultyChange.Current.Value = settings.EnableGradualDifficultyChange;
                 gradualDifficultyChangeEndTime.Current.Value = formatFloat(settings.GradualDifficultyChangeEndTimeMs);
                 keepDifficultyOverridesAfterSection.Current.Value = settings.KeepDifficultyOverridesAfterSection;
-                sectionCircleSize.Current.Value = formatFloat(settings.SectionCircleSize);
+                sectionCircleSize.Current.Value = hasSectionValue(settings.SectionCircleSize) ? settings.SectionCircleSize : 0f;
                 enableSectionCircleSizeWindow.Current.Value = settings.EnableSectionCircleSizeWindow;
                 sectionCircleSizeStartTime.Current.Value = formatOptionalWindowTime(settings.SectionCircleSizeStartTimeMs);
                 sectionCircleSizeEndTime.Current.Value = formatOptionalWindowTime(settings.SectionCircleSizeEndTimeMs);
                 enableGradualSectionCircleSizeChange.Current.Value = settings.EnableGradualSectionCircleSizeChange;
-                sectionApproachRate.Current.Value = formatFloat(settings.SectionApproachRate);
+                sectionApproachRate.Current.Value = hasSectionValue(settings.SectionApproachRate) ? settings.SectionApproachRate : -20f;
                 enableSectionApproachRateWindow.Current.Value = settings.EnableSectionApproachRateWindow;
                 sectionApproachRateStartTime.Current.Value = formatOptionalWindowTime(settings.SectionApproachRateStartTimeMs);
                 sectionApproachRateEndTime.Current.Value = formatOptionalWindowTime(settings.SectionApproachRateEndTimeMs);
                 enableGradualSectionApproachRateChange.Current.Value = settings.EnableGradualSectionApproachRateChange;
-                sectionOverallDifficulty.Current.Value = formatFloat(settings.SectionOverallDifficulty);
+                sectionOverallDifficulty.Current.Value = hasSectionValue(settings.SectionOverallDifficulty) ? settings.SectionOverallDifficulty : 0f;
                 enableSectionOverallDifficultyWindow.Current.Value = settings.EnableSectionOverallDifficultyWindow;
                 sectionOverallDifficultyStartTime.Current.Value = formatOptionalWindowTime(settings.SectionOverallDifficultyStartTimeMs);
                 sectionOverallDifficultyEndTime.Current.Value = formatOptionalWindowTime(settings.SectionOverallDifficultyEndTimeMs);
                 enableGradualSectionOverallDifficultyChange.Current.Value = settings.EnableGradualSectionOverallDifficultyChange;
+                sectionStackLeniency.Current.Value = hasSectionValue(settings.SectionStackLeniency) ? settings.SectionStackLeniency : 0f;
+                sectionTickRate.Current.Value = hasSectionValue(settings.SectionTickRate) ? settings.SectionTickRate : 0;
 
                 forceHidden.Current.Value = settings.ForceHidden;
                 forceNoApproachCircle.Current.Value = settings.ForceNoApproachCircle;
@@ -1360,6 +1471,21 @@ namespace osu.Game.Rulesets.Osu.Edit
                                                || settings.ForceFlashlight
                                                || settings.ForceDoubleTime;
                 showFunMods.Current.Value = hasAnyForcedFunMods(settings);
+
+                if (!hasSectionValue(settings.SectionCircleSize))
+                    sectionCircleSize.Current.Value = float.NaN;
+
+                if (!hasSectionValue(settings.SectionApproachRate))
+                    sectionApproachRate.Current.Value = float.NaN;
+
+                if (!hasSectionValue(settings.SectionOverallDifficulty))
+                    sectionOverallDifficulty.Current.Value = float.NaN;
+
+                if (!hasSectionValue(settings.SectionStackLeniency))
+                    sectionStackLeniency.Current.Value = float.NaN;
+
+                if (!hasSectionValue(settings.SectionTickRate))
+                    sectionTickRate.Current.Value = double.NaN;
             }
 
             updatingControls = false;
@@ -1505,6 +1631,16 @@ namespace osu.Game.Rulesets.Osu.Edit
         private void bindFloatSetting(FormNumberBox box, Action<SectionGimmickSettings, float> mutation, Func<float, float> clamp)
             => box.OnCommit += (_, _) => updateClampedFloatSetting(box, mutation, clamp);
 
+        private void bindSliderSetting(FormSliderBar<float> slider, Action<SectionGimmickSettings, float> mutation, Func<float, float> clamp)
+            => slider.Current.BindValueChanged(v => updateClampedSliderSetting(slider, mutation, v.NewValue, clamp));
+
+        private void bindSliderSetting(FormSliderBar<double> slider, Action<SectionGimmickSettings, double> mutation, Func<double, double> clamp)
+            => slider.Current.BindValueChanged(v => updateClampedSliderSetting(slider, mutation, v.NewValue, clamp));
+
+        private static bool hasSectionValue(float value) => !float.IsNaN(value);
+
+        private static bool hasSectionValue(double value) => !double.IsNaN(value);
+
         private void bindFloatSettingOnCommitOnly(FormNumberBox box, Action<SectionGimmickSettings, float> mutation, Func<float, float> clamp)
             => box.OnCommit += (_, _) => updateClampedFloatSetting(box, mutation, clamp);
 
@@ -1528,6 +1664,38 @@ namespace osu.Game.Rulesets.Osu.Edit
             if (box.Current.Value != formatted)
             {
                 box.Current.Value = formatted;
+                return;
+            }
+
+            mutateSetting(s => mutation(s, clamped));
+        }
+
+        private void updateClampedSliderSetting(FormSliderBar<float> slider, Action<SectionGimmickSettings, float> mutation, float value, Func<float, float> clamp)
+        {
+            if (updatingControls)
+                return;
+
+            float clamped = clamp(value);
+
+            if (Math.Abs(clamped - value) > 0.0001f)
+            {
+                slider.Current.Value = clamped;
+                return;
+            }
+
+            mutateSetting(s => mutation(s, clamped));
+        }
+
+        private void updateClampedSliderSetting(FormSliderBar<double> slider, Action<SectionGimmickSettings, double> mutation, double value, Func<double, double> clamp)
+        {
+            if (updatingControls)
+                return;
+
+            double clamped = clamp(value);
+
+            if (Math.Abs(clamped - value) > 0.0001)
+            {
+                slider.Current.Value = clamped;
                 return;
             }
 
@@ -1609,6 +1777,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                 s.SectionCircleSize = previous.Settings.SectionCircleSize;
                 s.SectionApproachRate = previous.Settings.SectionApproachRate;
                 s.SectionOverallDifficulty = previous.Settings.SectionOverallDifficulty;
+                s.AllowUnsafeStackLeniencyOverrideValues = previous.Settings.AllowUnsafeStackLeniencyOverrideValues;
+                s.SectionStackLeniency = previous.Settings.SectionStackLeniency;
+                s.AllowUnsafeTickRateOverrideValues = previous.Settings.AllowUnsafeTickRateOverrideValues;
+                s.SectionTickRate = previous.Settings.SectionTickRate;
             });
         }
 
@@ -1647,6 +1819,24 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private bool isUnsafeDifficultyOverrideEnabled()
             => allowUnsafeDifficultyOverrideValues.Current.Value;
+
+        private bool isUnsafeStackLeniencyOverrideEnabled()
+            => allowUnsafeStackLeniencyOverrideValues.Current.Value;
+
+        private bool isUnsafeTickRateOverrideEnabled()
+            => allowUnsafeTickRateOverrideValues.Current.Value;
+
+        private void updateDifficultyOverrideDefaults()
+        {
+            if (updatingControls)
+                return;
+
+            sectionCircleSize.Current.Default = editorBeatmap.Difficulty.CircleSize;
+            sectionApproachRate.Current.Default = editorBeatmap.Difficulty.ApproachRate;
+            sectionOverallDifficulty.Current.Default = editorBeatmap.Difficulty.OverallDifficulty;
+            sectionStackLeniency.Current.Default = editorBeatmap.StackLeniency;
+            sectionTickRate.Current.Default = editorBeatmap.Difficulty.SliderTickRate;
+        }
 
         private void postUnsafeDifficultyWarning()
             => notifications?.Post(new SimpleNotification

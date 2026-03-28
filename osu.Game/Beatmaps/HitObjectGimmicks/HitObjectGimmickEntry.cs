@@ -5,6 +5,8 @@ namespace osu.Game.Beatmaps.HitObjectGimmicks
 {
     public class HitObjectGimmickEntry
     {
+        public long? ObjectId { get; set; }
+
         public double StartTime { get; set; }
 
         public int ComboIndexWithOffsets { get; set; }

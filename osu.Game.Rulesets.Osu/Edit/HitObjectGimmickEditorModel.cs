@@ -64,6 +64,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         public HitObjectGimmickEditorModel(EditorBeatmap editorBeatmap)
         {
             this.editorBeatmap = editorBeatmap;
+            HitObjectGimmickBindingUtils.EnsureObjectIds(editorBeatmap.HitObjects);
         }
 
         public bool HasSelection => editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().Any();
@@ -73,12 +74,14 @@ namespace osu.Game.Rulesets.Osu.Edit
             get
             {
                 var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+                HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
 
                 if (selected.Count == 0)
                     return false;
 
+                var objectIdLookup = createObjectIdLookup(editorBeatmap.HitObjectGimmicks);
                 var lookup = createLookup(editorBeatmap.HitObjectGimmicks);
-                return selected.All(h => isNoApproachForced(h, lookup));
+                return selected.All(h => isNoApproachForced(h, objectIdLookup, lookup));
             }
         }
 
@@ -109,17 +112,19 @@ namespace osu.Game.Rulesets.Osu.Edit
         public SelectionState GetSelectionState()
         {
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
 
             if (selected.Count == 0)
                 return new SelectionState(false, 0, false, false, false, false, false, false, false, false, false, false, null);
 
+            var objectIdLookup = createObjectIdLookup(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
             var lookup = createLookup(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
 
             bool getBoolState(System.Func<HitObjectGimmickSettings, bool> getter)
-                => selected.All(h => lookup.TryGetValue((h.StartTime, h.ComboIndexWithOffsets), out var settings) && getter(settings));
+                => selected.All(h => tryGetSettings(h, objectIdLookup, lookup, out var settings) && getter(settings));
 
             var first = selected[0];
-            SectionGimmickSettings? representative = lookup.TryGetValue((first.StartTime, first.ComboIndexWithOffsets), out var firstSettings)
+            SectionGimmickSettings? representative = tryGetSettings(first, objectIdLookup, lookup, out var firstSettings)
                 ? mapToSectionSettings(firstSettings)
                 : new SectionGimmickSettings();
 
@@ -135,20 +140,23 @@ namespace osu.Game.Rulesets.Osu.Edit
                 forceHidden: getBoolState(s => s.ForceHidden),
                 forceHardRock: getBoolState(s => s.ForceHardRock),
                 forceFlashlight: getBoolState(s => s.ForceFlashlight),
-                forceNoApproachCircle: selected.All(h => isNoApproachForced(h, lookup)),
+                forceNoApproachCircle: selected.All(h => isNoApproachForced(h, objectIdLookup, lookup)),
                 representativeSettings: representative);
         }
 
         public SectionGimmickSettings? GetSelectionRepresentativeSettings()
         {
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
+
             if (selected.Count == 0)
                 return null;
 
+            var objectIdLookup = createObjectIdLookup(editorBeatmap.HitObjectGimmicks);
             var lookup = createLookup(editorBeatmap.HitObjectGimmicks);
             var first = selected[0];
 
-            if (!lookup.TryGetValue((first.StartTime, first.ComboIndexWithOffsets), out var firstSettings))
+            if (!tryGetSettings(first, objectIdLookup, lookup, out var firstSettings))
                 return new SectionGimmickSettings();
 
             return mapToSectionSettings(firstSettings);
@@ -157,6 +165,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         public void SetSelectionForceNoApproachCircle(bool enabled)
         {
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
 
             if (selected.Count == 0)
                 return;
@@ -175,6 +184,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         public void SetSelectionBoolSetting(System.Action<HitObjectGimmickSettings, bool> setter, bool enabled)
         {
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
 
             if (selected.Count == 0)
                 return;
@@ -197,6 +207,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         public void SetSelectionFloatSetting(System.Action<HitObjectGimmickSettings, float> setter, float value)
         {
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
 
             if (selected.Count == 0)
                 return;
@@ -220,6 +231,31 @@ namespace osu.Game.Rulesets.Osu.Edit
         public void SetSelectionIntSetting(System.Action<HitObjectGimmickSettings, int> setter, int value)
         {
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
+
+            if (selected.Count == 0)
+                return;
+
+            var updated = CloneHitObjectGimmicks(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
+
+            foreach (var hitObject in selected)
+            {
+                var entry = getOrCreateEntry(updated, hitObject);
+                setter(entry.Settings, value);
+                SectionGimmickValueClamper.ClampHitObjectSettingsInPlace(entry.Settings);
+                cleanupEntryIfEmpty(updated, entry);
+            }
+
+            editorBeatmap.BeginChange();
+            editorBeatmap.HitObjectGimmicks = updated;
+            editorBeatmap.UpdateAllHitObjects();
+            editorBeatmap.EndChange();
+        }
+
+        public void SetSelectionDoubleSetting(System.Action<HitObjectGimmickSettings, double> setter, double value)
+        {
+            var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
 
             if (selected.Count == 0)
                 return;
@@ -249,6 +285,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
                     return new HitObjectGimmickEntry
                     {
+                        ObjectId = e.ObjectId,
                         StartTime = e.StartTime,
                         ComboIndexWithOffsets = e.ComboIndexWithOffsets,
                         Settings = new HitObjectGimmickSettings
@@ -272,6 +309,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                             SectionCircleSize = settings.SectionCircleSize,
                             SectionApproachRate = settings.SectionApproachRate,
                             SectionOverallDifficulty = settings.SectionOverallDifficulty,
+                            AllowUnsafeStackLeniencyOverrideValues = settings.AllowUnsafeStackLeniencyOverrideValues,
+                            SectionStackLeniency = settings.SectionStackLeniency,
+                            AllowUnsafeTickRateOverrideValues = settings.AllowUnsafeTickRateOverrideValues,
+                            SectionTickRate = settings.SectionTickRate,
                             ForceHidden = settings.ForceHidden,
                             ForceNoApproachCircle = settings.ForceNoApproachCircle,
                             ForceHardRock = settings.ForceHardRock,
@@ -285,8 +326,9 @@ namespace osu.Game.Rulesets.Osu.Edit
         private static void applyOrRemoveEntry(BeatmapHitObjectGimmicks gimmicks, OsuHitObject hitObject, bool enabled)
         {
             var existing = gimmicks.Entries.FirstOrDefault(e =>
-                e.StartTime == hitObject.StartTime
-                && e.ComboIndexWithOffsets == hitObject.ComboIndexWithOffsets);
+                (e.ObjectId.HasValue && hitObject.GimmickObjectId.HasValue
+                    ? e.ObjectId.Value == hitObject.GimmickObjectId.Value
+                    : e.StartTime == hitObject.StartTime && e.ComboIndexWithOffsets == hitObject.ComboIndexWithOffsets));
 
             if (!enabled)
             {
@@ -303,12 +345,17 @@ namespace osu.Game.Rulesets.Osu.Edit
             {
                 existing = new HitObjectGimmickEntry
                 {
+                    ObjectId = hitObject.GimmickObjectId,
                     StartTime = hitObject.StartTime,
                     ComboIndexWithOffsets = hitObject.ComboIndexWithOffsets,
                     Settings = new HitObjectGimmickSettings(),
                 };
 
                 gimmicks.Entries.Add(existing);
+            }
+            else if (!existing.ObjectId.HasValue)
+            {
+                existing.ObjectId = hitObject.GimmickObjectId;
             }
 
             existing.Settings.ForceNoApproachCircle = true;
@@ -318,14 +365,16 @@ namespace osu.Game.Rulesets.Osu.Edit
         private bool getSelectionBoolState(System.Func<HitObjectGimmickSettings, bool> getter)
         {
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
 
             if (selected.Count == 0)
                 return false;
 
+            var objectIdLookup = createObjectIdLookup(editorBeatmap.HitObjectGimmicks);
             var lookup = createLookup(editorBeatmap.HitObjectGimmicks);
             return selected.All(h =>
             {
-                if (!lookup.TryGetValue((h.StartTime, h.ComboIndexWithOffsets), out var settings))
+                if (!tryGetSettings(h, objectIdLookup, lookup, out var settings))
                     return false;
 
                 return getter(settings);
@@ -335,14 +384,21 @@ namespace osu.Game.Rulesets.Osu.Edit
         private static HitObjectGimmickEntry getOrCreateEntry(BeatmapHitObjectGimmicks gimmicks, OsuHitObject hitObject)
         {
             var existing = gimmicks.Entries.FirstOrDefault(e =>
-                e.StartTime == hitObject.StartTime
-                && e.ComboIndexWithOffsets == hitObject.ComboIndexWithOffsets);
+                (e.ObjectId.HasValue && hitObject.GimmickObjectId.HasValue
+                    ? e.ObjectId.Value == hitObject.GimmickObjectId.Value
+                    : e.StartTime == hitObject.StartTime && e.ComboIndexWithOffsets == hitObject.ComboIndexWithOffsets));
 
             if (existing != null)
+            {
+                if (!existing.ObjectId.HasValue)
+                    existing.ObjectId = hitObject.GimmickObjectId;
+
                 return existing;
+            }
 
             existing = new HitObjectGimmickEntry
             {
+                ObjectId = hitObject.GimmickObjectId,
                 StartTime = hitObject.StartTime,
                 ComboIndexWithOffsets = hitObject.ComboIndexWithOffsets,
                 Settings = new HitObjectGimmickSettings(),
@@ -379,6 +435,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                           || !float.IsNaN(s.SectionCircleSize)
                           || !float.IsNaN(s.SectionApproachRate)
                           || !float.IsNaN(s.SectionOverallDifficulty)
+                          || s.AllowUnsafeStackLeniencyOverrideValues
+                          || !float.IsNaN(s.SectionStackLeniency)
+                          || s.AllowUnsafeTickRateOverrideValues
+                          || !double.IsNaN(s.SectionTickRate)
                           || !float.IsNaN(s.FlashlightRadius);
 
             if (!hasAny)
@@ -411,6 +471,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                 SectionCircleSize = source.SectionCircleSize,
                 SectionApproachRate = source.SectionApproachRate,
                 SectionOverallDifficulty = source.SectionOverallDifficulty,
+                AllowUnsafeStackLeniencyOverrideValues = source.AllowUnsafeStackLeniencyOverrideValues,
+                SectionStackLeniency = source.SectionStackLeniency,
+                AllowUnsafeTickRateOverrideValues = source.AllowUnsafeTickRateOverrideValues,
+                SectionTickRate = source.SectionTickRate,
 
                 ForceHidden = source.ForceHidden,
                 ForceNoApproachCircle = source.ForceNoApproachCircle,
@@ -420,9 +484,20 @@ namespace osu.Game.Rulesets.Osu.Edit
             };
 
         private static Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> createLookup(BeatmapHitObjectGimmicks gimmicks)
-            => gimmicks.Entries.ToDictionary(e => (e.StartTime, e.ComboIndexWithOffsets), e => e.Settings ?? new HitObjectGimmickSettings());
+            => HitObjectGimmickBindingUtils.CreateLookupByLegacyKey(gimmicks);
 
-        private static bool isNoApproachForced(OsuHitObject hitObject, Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> lookup)
-            => lookup.TryGetValue((hitObject.StartTime, hitObject.ComboIndexWithOffsets), out HitObjectGimmickSettings? settings) && settings.ForceNoApproachCircle;
+        private static Dictionary<long, HitObjectGimmickSettings> createObjectIdLookup(BeatmapHitObjectGimmicks gimmicks)
+            => HitObjectGimmickBindingUtils.CreateLookupByObjectId(gimmicks);
+
+        private static bool tryGetSettings(OsuHitObject hitObject,
+                                           Dictionary<long, HitObjectGimmickSettings> objectIdLookup,
+                                           Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> legacyLookup,
+                                           out HitObjectGimmickSettings settings)
+            => HitObjectGimmickBindingUtils.TryGetSettings(hitObject, objectIdLookup, legacyLookup, out settings);
+
+        private static bool isNoApproachForced(OsuHitObject hitObject,
+                                               Dictionary<long, HitObjectGimmickSettings> objectIdLookup,
+                                               Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> legacyLookup)
+            => tryGetSettings(hitObject, objectIdLookup, legacyLookup, out HitObjectGimmickSettings? settings) && settings.ForceNoApproachCircle;
     }
 }

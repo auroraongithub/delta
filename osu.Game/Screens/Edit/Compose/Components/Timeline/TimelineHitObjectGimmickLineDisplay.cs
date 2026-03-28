@@ -58,7 +58,7 @@ namespace osu.Game.Screens.Edit.Compose.Components.Timeline
             if (entries.Count == 0)
                 return string.Empty;
 
-            return string.Join("|", entries.Select(e => $"{e.StartTime:F3}:{e.ComboIndexWithOffsets}"));
+            return string.Join("|", entries.Select(e => $"{e.ObjectId?.ToString() ?? "legacy"}:{e.StartTime:F3}:{e.ComboIndexWithOffsets}"));
         }
 
         private void addLine(double time, Color4 colour, float width, float alpha)

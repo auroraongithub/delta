@@ -54,6 +54,11 @@ namespace osu.Game.Rulesets.Objects
             set => StartTimeBindable.Value = value;
         }
 
+        /// <summary>
+        /// Optional identifier used to bind hit-object gimmick settings directly to this object.
+        /// </summary>
+        public long? GimmickObjectId { get; set; }
+
         public readonly BindableList<HitSampleInfo> SamplesBindable = new BindableList<HitSampleInfo>();
 
         /// <summary>

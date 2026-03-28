@@ -4,6 +4,7 @@
 using System;
 using System.Globalization;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Threading;
@@ -49,9 +50,13 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private FormCheckBox enableDifficultyOverrides = null!;
         private FormCheckBox allowUnsafeDifficultyOverrideValues = null!;
-        private FormNumberBox sectionCircleSize = null!;
-        private FormNumberBox sectionApproachRate = null!;
-        private FormNumberBox sectionOverallDifficulty = null!;
+        private FormSliderBar<float> sectionCircleSize = null!;
+        private FormSliderBar<float> sectionApproachRate = null!;
+        private FormSliderBar<float> sectionOverallDifficulty = null!;
+        private FormCheckBox allowUnsafeStackLeniencyOverrideValues = null!;
+        private FormSliderBar<float> sectionStackLeniency = null!;
+        private FormCheckBox allowUnsafeTickRateOverrideValues = null!;
+        private FormSliderBar<double> sectionTickRate = null!;
 
         private FormCheckBox forceHidden = null!;
         private FormCheckBox forceHardRock = null!;
@@ -63,6 +68,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FillFlowContainer countLimitFields = null!;
         private FillFlowContainer offsetPenaltyFields = null!;
         private FillFlowContainer difficultyOverrideFields = null!;
+        private bool previousDifficultyOverridesEnabled;
 
         private OsuSpriteText selectionStatus = null!;
 
@@ -119,9 +125,75 @@ namespace osu.Game.Rulesets.Osu.Edit
                     enableDifficultyOverrides = new FormCheckBox { Caption = "Difficulty Overrides (CS/AR/OD)" },
                     difficultyOverrideFields = createContainer(
                         allowUnsafeDifficultyOverrideValues = new FormCheckBox { Caption = "Allow values past limits (unsafe)" },
-                        sectionCircleSize = new FormNumberBox(allowDecimals: true) { Caption = "SectionCircleSize (0-11)" },
-                        sectionApproachRate = new FormNumberBox(allowDecimals: true) { Caption = "SectionApproachRate (<= 11)" },
-                        sectionOverallDifficulty = new FormNumberBox(allowDecimals: true) { Caption = "SectionOverallDifficulty (0-11)" }),
+                        sectionCircleSize = new FormSliderBar<float>
+                        {
+                            Caption = "CS (0-11)",
+                            Current = new BindableFloat
+                            {
+                                // Keep an extended edit range so unsafe mode can input values past normal limits.
+                                // Safe mode still clamps via SectionGimmickValueClamper.
+                                MinValue = -1000,
+                                MaxValue = 1000,
+                                Precision = 0.1f,
+                            },
+                            TransferValueOnCommit = true,
+                            CommitEmptyAsNaN = false,
+                            TabbableContentContainer = this,
+                        },
+                        sectionApproachRate = new FormSliderBar<float>
+                        {
+                            Caption = "AR (<= 11)",
+                            Current = new BindableFloat
+                            {
+                                MinValue = -1000,
+                                MaxValue = 1000,
+                                Precision = 0.1f,
+                            },
+                            TransferValueOnCommit = true,
+                            CommitEmptyAsNaN = false,
+                            TabbableContentContainer = this,
+                        },
+                        sectionOverallDifficulty = new FormSliderBar<float>
+                        {
+                            Caption = "OD (0-11)",
+                            Current = new BindableFloat
+                            {
+                                MinValue = -1000,
+                                MaxValue = 1000,
+                                Precision = 0.1f,
+                            },
+                            TransferValueOnCommit = true,
+                            CommitEmptyAsNaN = false,
+                            TabbableContentContainer = this,
+                        },
+                        allowUnsafeStackLeniencyOverrideValues = new FormCheckBox { Caption = "Allow stack leniency values past limits (unsafe)" },
+                        sectionStackLeniency = new FormSliderBar<float>
+                        {
+                            Caption = "Stack Leniency (0-1)",
+                            Current = new BindableFloat
+                            {
+                                MinValue = -5,
+                                MaxValue = 5,
+                                Precision = 0.01f,
+                            },
+                            TransferValueOnCommit = true,
+                            CommitEmptyAsNaN = false,
+                            TabbableContentContainer = this,
+                        },
+                        allowUnsafeTickRateOverrideValues = new FormCheckBox { Caption = "Allow tick rate values past limits (unsafe)" },
+                        sectionTickRate = new FormSliderBar<double>
+                        {
+                            Caption = "Tick Rate (>= 0)",
+                            Current = new BindableDouble
+                            {
+                                MinValue = -20,
+                                MaxValue = 20,
+                                Precision = 0.01,
+                            },
+                            TransferValueOnCommit = true,
+                            CommitEmptyAsNaN = false,
+                            TabbableContentContainer = this,
+                        }),
 
                     forceHidden = new FormCheckBox { Caption = "Force Hidden (HD)" },
                     forceHardRock = new FormCheckBox { Caption = "Force Hard Rock (HR)" },
@@ -132,6 +204,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             };
 
             bindControlEvents();
+            updateDifficultyOverrideDefaults();
 
             editorBeatmap.SelectedHitObjects.BindCollectionChanged((_, _) => scheduleSelectionUpdate(), true);
             editorBeatmap.HitObjectUpdated += _ => scheduleSelectionUpdate();
@@ -146,13 +219,40 @@ namespace osu.Game.Rulesets.Osu.Edit
             enableNoMiss.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableNoMiss = value));
             enableCountLimits.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableCountLimits = value));
             enableGreatOffsetPenalty.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableGreatOffsetPenalty = value));
-            enableDifficultyOverrides.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableDifficultyOverrides = value));
+            enableDifficultyOverrides.Current.BindValueChanged(v =>
+            {
+                bool wasEnabled = previousDifficultyOverridesEnabled;
+
+                setBool(v.NewValue, (s, value) => s.EnableDifficultyOverrides = value);
+
+                if (!updatingControls)
+                    previousDifficultyOverridesEnabled = v.NewValue;
+
+                if (updatingControls || !v.NewValue || wasEnabled)
+                    return;
+
+                setDefaultSelectionDifficultyOverrideValues();
+            });
             allowUnsafeDifficultyOverrideValues.Current.BindValueChanged(v =>
             {
                 if (!updatingControls && v.NewValue)
                     postUnsafeDifficultyWarning();
 
                 setBool(v.NewValue, (s, value) => s.AllowUnsafeDifficultyOverrideValues = value);
+            });
+            allowUnsafeStackLeniencyOverrideValues.Current.BindValueChanged(v =>
+            {
+                if (!updatingControls && v.NewValue)
+                    postUnsafeDifficultyWarning();
+
+                setBool(v.NewValue, (s, value) => s.AllowUnsafeStackLeniencyOverrideValues = value);
+            });
+            allowUnsafeTickRateOverrideValues.Current.BindValueChanged(v =>
+            {
+                if (!updatingControls && v.NewValue)
+                    postUnsafeDifficultyWarning();
+
+                setBool(v.NewValue, (s, value) => s.AllowUnsafeTickRateOverrideValues = value);
             });
 
             forceHidden.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.ForceHidden = value));
@@ -174,10 +274,24 @@ namespace osu.Game.Rulesets.Osu.Edit
             bindFloat(greatOffsetThreshold, (s, value) => s.GreatOffsetThresholdMs = value, v => Math.Max(0f, v));
             bindFloat(greatOffsetPenaltyHp, (s, value) => s.GreatOffsetPenaltyHP = value, v => Math.Min(0f, v));
 
-            bindFloat(sectionCircleSize, (s, value) => s.SectionCircleSize = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampCircleSize(v));
-            bindFloat(sectionApproachRate, (s, value) => s.SectionApproachRate = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampApproachRate(v));
-            bindFloat(sectionOverallDifficulty, (s, value) => s.SectionOverallDifficulty = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampOverallDifficulty(v));
+            bindSlider(sectionCircleSize, (s, value) => s.SectionCircleSize = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampCircleSize(v));
+            bindSlider(sectionApproachRate, (s, value) => s.SectionApproachRate = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampApproachRate(v));
+            bindSlider(sectionOverallDifficulty, (s, value) => s.SectionOverallDifficulty = value, v => isUnsafeDifficultyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampOverallDifficulty(v));
+            bindSlider(sectionStackLeniency, (s, value) => s.SectionStackLeniency = value, v => isUnsafeStackLeniencyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampStackLeniency(v));
+            bindSlider(sectionTickRate, (s, value) => s.SectionTickRate = value, v => isUnsafeTickRateOverrideEnabled() ? v : SectionGimmickValueClamper.ClampTickRate(v));
+
+            sectionCircleSize.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionApproachRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionOverallDifficulty.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionStackLeniency.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionTickRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
         }
+
+        private void bindSlider(FormSliderBar<float> source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter, Func<float, float> clamp)
+            => source.Current.BindValueChanged(v => setSlider(source, setter, v.NewValue, clamp));
+
+        private void bindSlider(FormSliderBar<double> source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, double> setter, Func<double, double> clamp)
+            => source.Current.BindValueChanged(v => setSlider(source, setter, v.NewValue, clamp));
 
         private void bindFloat(FormNumberBox source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter, Func<float, float> clamp)
             => source.OnCommit += (_, _) => setFloat(source, setter, clamp);
@@ -222,6 +336,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 enableCountLimits, max300, max100, max50, maxMiss,
                 enableGreatOffsetPenalty, greatOffsetThreshold, greatOffsetPenaltyHp,
                 enableDifficultyOverrides, allowUnsafeDifficultyOverrideValues, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
+                allowUnsafeStackLeniencyOverrideValues, sectionStackLeniency, allowUnsafeTickRateOverrideValues, sectionTickRate,
                 forceHidden, forceHardRock, forceFlashlight, flashlightRadius, forceNoApproachCircle);
 
             enableHpGimmick.Current.Value = hasSelection && state.EnableHPGimmick;
@@ -229,14 +344,18 @@ namespace osu.Game.Rulesets.Osu.Edit
             enableCountLimits.Current.Value = hasSelection && state.EnableCountLimits;
             enableGreatOffsetPenalty.Current.Value = hasSelection && state.EnableGreatOffsetPenalty;
             enableDifficultyOverrides.Current.Value = hasSelection && state.EnableDifficultyOverrides;
+            previousDifficultyOverridesEnabled = enableDifficultyOverrides.Current.Value;
             allowUnsafeDifficultyOverrideValues.Current.Value = hasSelection && state.AllowUnsafeDifficultyOverrideValues;
+
+            var representative = state.RepresentativeSettings;
+            allowUnsafeStackLeniencyOverrideValues.Current.Value = hasSelection && (representative?.AllowUnsafeStackLeniencyOverrideValues ?? false);
+            allowUnsafeTickRateOverrideValues.Current.Value = hasSelection && (representative?.AllowUnsafeTickRateOverrideValues ?? false);
 
             forceHidden.Current.Value = hasSelection && state.ForceHidden;
             forceHardRock.Current.Value = hasSelection && state.ForceHardRock;
             forceFlashlight.Current.Value = hasSelection && state.ForceFlashlight;
             forceNoApproachCircle.Current.Value = hasSelection && state.ForceNoApproachCircle;
 
-            var representative = state.RepresentativeSettings;
             hp300.Current.Value = formatFloat(representative?.HP300 ?? float.NaN);
             hp100.Current.Value = formatFloat(representative?.HP100 ?? float.NaN);
             hp50.Current.Value = formatFloat(representative?.HP50 ?? float.NaN);
@@ -250,10 +369,36 @@ namespace osu.Game.Rulesets.Osu.Edit
             greatOffsetThreshold.Current.Value = formatFloat(representative?.GreatOffsetThresholdMs ?? -1);
             greatOffsetPenaltyHp.Current.Value = formatFloat(representative?.GreatOffsetPenaltyHP ?? float.NaN);
 
-            sectionCircleSize.Current.Value = formatFloat(representative?.SectionCircleSize ?? float.NaN);
-            sectionApproachRate.Current.Value = formatFloat(representative?.SectionApproachRate ?? float.NaN);
-            sectionOverallDifficulty.Current.Value = formatFloat(representative?.SectionOverallDifficulty ?? float.NaN);
+            sectionCircleSize.Current.Value = float.IsNaN(representative?.SectionCircleSize ?? float.NaN) ? 0f : representative!.SectionCircleSize;
+            sectionApproachRate.Current.Value = float.IsNaN(representative?.SectionApproachRate ?? float.NaN) ? 0f : representative!.SectionApproachRate;
+            sectionOverallDifficulty.Current.Value = float.IsNaN(representative?.SectionOverallDifficulty ?? float.NaN) ? 0f : representative!.SectionOverallDifficulty;
+            sectionStackLeniency.Current.Value = float.IsNaN(representative?.SectionStackLeniency ?? float.NaN) ? 0f : representative!.SectionStackLeniency;
+            sectionTickRate.Current.Value = double.IsNaN(representative?.SectionTickRate ?? double.NaN) ? 0 : representative!.SectionTickRate;
             flashlightRadius.Current.Value = formatFloat(representative?.FlashlightRadius ?? float.NaN);
+
+            if (float.IsNaN(representative?.SectionCircleSize ?? float.NaN))
+                sectionCircleSize.Current.Value = float.NaN;
+
+            if (float.IsNaN(representative?.SectionApproachRate ?? float.NaN))
+                sectionApproachRate.Current.Value = float.NaN;
+
+            if (float.IsNaN(representative?.SectionOverallDifficulty ?? float.NaN))
+                sectionOverallDifficulty.Current.Value = float.NaN;
+
+            if (float.IsNaN(representative?.SectionStackLeniency ?? float.NaN))
+                sectionStackLeniency.Current.Value = float.NaN;
+
+            if (double.IsNaN(representative?.SectionTickRate ?? double.NaN))
+                sectionTickRate.Current.Value = double.NaN;
+
+            if (!hasSelection)
+            {
+                sectionCircleSize.Current.Value = float.NaN;
+                sectionApproachRate.Current.Value = float.NaN;
+                sectionOverallDifficulty.Current.Value = float.NaN;
+                sectionStackLeniency.Current.Value = float.NaN;
+                sectionTickRate.Current.Value = double.NaN;
+            }
 
             scheduleFade(hpFields, enableHpGimmick.Current.Value, 0);
             hpFields.AlwaysPresent = enableHpGimmick.Current.Value;
@@ -277,6 +422,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                     enableCountLimits, max300, max100, max50, maxMiss,
                     enableGreatOffsetPenalty, greatOffsetThreshold, greatOffsetPenaltyHp,
                     enableDifficultyOverrides, allowUnsafeDifficultyOverrideValues, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
+                    allowUnsafeStackLeniencyOverrideValues, sectionStackLeniency, allowUnsafeTickRateOverrideValues, sectionTickRate,
                     forceHidden, forceHardRock, forceFlashlight, flashlightRadius, forceNoApproachCircle);
             }
 
@@ -360,6 +506,52 @@ namespace osu.Game.Rulesets.Osu.Edit
             scheduleSelectionUpdate();
         }
 
+        private void setSlider(FormSliderBar<float> source,
+                               Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter,
+                               float value,
+                               Func<float, float> clamp)
+        {
+            if (updatingControls)
+                return;
+
+            if (!model.HasSelection)
+                return;
+
+            float clamped = clamp(value);
+
+            if (Math.Abs(value - clamped) > 0.0001f)
+            {
+                source.Current.Value = clamped;
+                return;
+            }
+
+            model.SetSelectionFloatSetting(setter, clamped);
+            scheduleSelectionUpdate();
+        }
+
+        private void setSlider(FormSliderBar<double> source,
+                               Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, double> setter,
+                               double value,
+                               Func<double, double> clamp)
+        {
+            if (updatingControls)
+                return;
+
+            if (!model.HasSelection)
+                return;
+
+            double clamped = clamp(value);
+
+            if (Math.Abs(value - clamped) > 0.0001)
+            {
+                source.Current.Value = clamped;
+                return;
+            }
+
+            model.SetSelectionDoubleSetting(setter, clamped);
+            scheduleSelectionUpdate();
+        }
+
         private static FillFlowContainer createContainer(params Drawable[] children)
             => new FillFlowContainer
             {
@@ -381,6 +573,10 @@ namespace osu.Game.Rulesets.Osu.Edit
                         c.Current.Disabled = !enabled;
                         break;
 
+                    case FormSliderBar<float> s:
+                        s.Current.Disabled = !enabled;
+                        break;
+
                     case FormTextBox t:
                         t.ReadOnly = !enabled;
                         break;
@@ -398,8 +594,53 @@ namespace osu.Game.Rulesets.Osu.Edit
         private static string formatInt(int value)
             => value.ToString(CultureInfo.InvariantCulture);
 
+        private static string formatDouble(double value)
+            => double.IsNaN(value) ? string.Empty : value.ToString(CultureInfo.InvariantCulture);
+
         private bool isUnsafeDifficultyOverrideEnabled()
             => allowUnsafeDifficultyOverrideValues.Current.Value;
+
+        private bool isUnsafeStackLeniencyOverrideEnabled()
+            => allowUnsafeStackLeniencyOverrideValues.Current.Value;
+
+        private bool isUnsafeTickRateOverrideEnabled()
+            => allowUnsafeTickRateOverrideValues.Current.Value;
+
+        private void updateDifficultyOverrideDefaults()
+        {
+            if (updatingControls)
+                return;
+
+            sectionCircleSize.Current.Default = editorBeatmap.Difficulty.CircleSize;
+            sectionApproachRate.Current.Default = editorBeatmap.Difficulty.ApproachRate;
+            sectionOverallDifficulty.Current.Default = editorBeatmap.Difficulty.OverallDifficulty;
+            sectionStackLeniency.Current.Default = editorBeatmap.StackLeniency;
+            sectionTickRate.Current.Default = editorBeatmap.Difficulty.SliderTickRate;
+        }
+
+        private void setDefaultSelectionDifficultyOverrideValues()
+        {
+            if (!model.HasSelection)
+                return;
+
+            var current = model.GetSelectionRepresentativeSettings();
+            bool changed = false;
+
+            if (float.IsNaN(current?.SectionStackLeniency ?? float.NaN))
+            {
+                model.SetSelectionFloatSetting((s, value) => s.SectionStackLeniency = value, editorBeatmap.StackLeniency);
+                changed = true;
+            }
+
+            if (double.IsNaN(current?.SectionTickRate ?? double.NaN))
+            {
+                model.SetSelectionDoubleSetting((s, value) => s.SectionTickRate = value, editorBeatmap.Difficulty.SliderTickRate);
+                changed = true;
+            }
+
+            if (changed)
+                scheduleSelectionUpdate();
+        }
 
         private void postUnsafeDifficultyWarning()
             => notifications?.Post(new SimpleNotification

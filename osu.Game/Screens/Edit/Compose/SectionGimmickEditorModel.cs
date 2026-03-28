@@ -69,6 +69,10 @@ namespace osu.Game.Screens.Edit.Compose
                         newSettings.SectionCircleSize = source.Settings.SectionCircleSize;
                         newSettings.SectionApproachRate = source.Settings.SectionApproachRate;
                         newSettings.SectionOverallDifficulty = source.Settings.SectionOverallDifficulty;
+                        newSettings.AllowUnsafeStackLeniencyOverrideValues = source.Settings.AllowUnsafeStackLeniencyOverrideValues;
+                        newSettings.SectionStackLeniency = source.Settings.SectionStackLeniency;
+                        newSettings.AllowUnsafeTickRateOverrideValues = source.Settings.AllowUnsafeTickRateOverrideValues;
+                        newSettings.SectionTickRate = source.Settings.SectionTickRate;
                     }
                 }
 
@@ -311,6 +315,10 @@ namespace osu.Game.Screens.Edit.Compose
                 SectionOverallDifficultyStartTimeMs = settings.SectionOverallDifficultyStartTimeMs,
                 SectionOverallDifficultyEndTimeMs = settings.SectionOverallDifficultyEndTimeMs,
                 EnableGradualSectionOverallDifficultyChange = settings.EnableGradualSectionOverallDifficultyChange,
+                AllowUnsafeStackLeniencyOverrideValues = settings.AllowUnsafeStackLeniencyOverrideValues,
+                SectionStackLeniency = settings.SectionStackLeniency,
+                AllowUnsafeTickRateOverrideValues = settings.AllowUnsafeTickRateOverrideValues,
+                SectionTickRate = settings.SectionTickRate,
                 ForceHidden = settings.ForceHidden,
                 ForceNoApproachCircle = settings.ForceNoApproachCircle,
                 ForceHardRock = settings.ForceHardRock,

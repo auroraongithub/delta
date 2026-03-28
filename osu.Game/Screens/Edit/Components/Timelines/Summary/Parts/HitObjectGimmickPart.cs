@@ -90,7 +90,7 @@ namespace osu.Game.Screens.Edit.Components.Timelines.Summary.Parts
             if (entries.Count == 0)
                 return string.Empty;
 
-            return string.Join("|", entries.Select(e => $"{e.StartTime:F3}:{e.ComboIndexWithOffsets}"));
+            return string.Join("|", entries.Select(e => $"{e.ObjectId?.ToString() ?? "legacy"}:{e.StartTime:F3}:{e.ComboIndexWithOffsets}"));
         }
     }
 }

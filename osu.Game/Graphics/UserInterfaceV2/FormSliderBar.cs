@@ -57,6 +57,12 @@ namespace osu.Game.Graphics.UserInterfaceV2
         /// </summary>
         public bool TransferValueOnCommit { get; set; }
 
+        /// <summary>
+        /// Whether committing empty text should set the value to <c>NaN</c> (for float/double sliders).
+        /// If <see langword="false"/>, empty commit resets to <see cref="Bindable{T}.Default"/>.
+        /// </summary>
+        public bool CommitEmptyAsNaN { get; init; }
+
         private CompositeDrawable? tabbableContentContainer;
 
         public CompositeDrawable? TabbableContentContainer
@@ -176,6 +182,7 @@ namespace osu.Game.Graphics.UserInterfaceV2
             current.MinValueChanged += v => currentNumberInstantaneous.MinValue = v;
             current.MaxValueChanged += v => currentNumberInstantaneous.MaxValue = v;
             current.PrecisionChanged += v => currentNumberInstantaneous.Precision = v;
+            current.DefaultChanged += v => currentNumberInstantaneous.Default = v.NewValue;
             current.DisabledChanged += disabled =>
             {
                 if (disabled)
@@ -305,7 +312,7 @@ namespace osu.Game.Graphics.UserInterfaceV2
             currentNumberInstantaneous.BindDisabledChanged(_ => updateState());
             currentNumberInstantaneous.BindValueChanged(e =>
             {
-                if (!TransferValueOnCommit)
+                if (!TransferValueOnCommit && !current.Disabled)
                     current.Value = e.NewValue;
 
                 updateState();
@@ -322,10 +329,48 @@ namespace osu.Game.Graphics.UserInterfaceV2
 
         private void textCommitted(TextBox t, bool isNew)
         {
+            if (string.IsNullOrWhiteSpace(textBox.Current.Value))
+            {
+                if (!currentNumberInstantaneous.Disabled)
+                {
+                    if (CommitEmptyAsNaN)
+                    {
+                        switch (currentNumberInstantaneous)
+                        {
+                            case Bindable<float> bindableFloat:
+                                bindableFloat.Value = float.NaN;
+                                break;
+
+                            case Bindable<double> bindableDouble:
+                                bindableDouble.Value = double.NaN;
+                                break;
+
+                            default:
+                                currentNumberInstantaneous.SetDefault();
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        currentNumberInstantaneous.SetDefault();
+                    }
+                }
+
+                currentNumberInstantaneous.TriggerChange();
+
+                if (!current.Disabled)
+                    current.Value = currentNumberInstantaneous.Value;
+
+                background.Flash();
+                return;
+            }
+
             tryUpdateSliderFromTextBox();
             // If the attempted update above failed, restore text box to match the slider.
             currentNumberInstantaneous.TriggerChange();
-            current.Value = currentNumberInstantaneous.Value;
+
+            if (!current.Disabled)
+                current.Value = currentNumberInstantaneous.Value;
 
             background.Flash();
         }

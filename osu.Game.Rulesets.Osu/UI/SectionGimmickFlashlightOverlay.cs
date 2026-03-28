@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
@@ -14,6 +15,7 @@ using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.HitObjectGimmicks;
 using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Rulesets.Mods;
+using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.Objects.Drawables;
 using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.Osu.Objects.Drawables;
@@ -31,6 +33,8 @@ namespace osu.Game.Rulesets.Osu.UI
     {
         private readonly BeatmapSectionGimmicks gimmicks;
         private readonly BeatmapHitObjectGimmicks hitObjectGimmicks;
+        private readonly Dictionary<long, HitObjectGimmickSettings> hitObjectSettingsById;
+        private readonly Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> hitObjectSettingsByLegacyKey;
         private readonly SectionForcedFlashlightMod forcedFlashlightMod;
 
         private bool wasFlashlightForced;
@@ -43,6 +47,8 @@ namespace osu.Game.Rulesets.Osu.UI
         {
             gimmicks = beatmap.SectionGimmicks;
             hitObjectGimmicks = beatmap.HitObjectGimmicks;
+            hitObjectSettingsById = HitObjectGimmickBindingUtils.CreateLookupByObjectId(hitObjectGimmicks);
+            hitObjectSettingsByLegacyKey = HitObjectGimmickBindingUtils.CreateLookupByLegacyKey(hitObjectGimmicks);
 
             RelativeSizeAxes = Axes.Both;
 
@@ -80,7 +86,9 @@ namespace osu.Game.Rulesets.Osu.UI
             if (section?.Settings.ForceFlashlight == true)
                 return true;
 
-            return hitObjectGimmicks.Entries.Any(e => e.Settings?.ForceFlashlight == true && Math.Abs(e.StartTime - Time.Current) <= 1);
+            return drawableHitObjectsAtCurrentTime().Any(h =>
+                HitObjectGimmickBindingUtils.TryGetSettings(h, hitObjectSettingsById, hitObjectSettingsByLegacyKey, out var settings)
+                && settings.ForceFlashlight);
         }
 
         private float? getFlashlightRadiusAtCurrentTime()
@@ -94,12 +102,16 @@ namespace osu.Game.Rulesets.Osu.UI
                     return Math.Clamp(sectionRadius, 20f, 400f);
             }
 
-            var entry = hitObjectGimmicks.Entries
-                .Where(e => e.Settings?.ForceFlashlight == true && Math.Abs(e.StartTime - Time.Current) <= 1)
-                .LastOrDefault();
+            foreach (var hitObject in drawableHitObjectsAtCurrentTime())
+            {
+                if (!HitObjectGimmickBindingUtils.TryGetSettings(hitObject, hitObjectSettingsById, hitObjectSettingsByLegacyKey, out var settings))
+                    continue;
 
-            if (entry?.Settings != null && !float.IsNaN(entry.Settings.FlashlightRadius))
-                return Math.Clamp(entry.Settings.FlashlightRadius, 20f, 400f);
+                if (!settings.ForceFlashlight || float.IsNaN(settings.FlashlightRadius))
+                    continue;
+
+                return Math.Clamp(settings.FlashlightRadius, 20f, 400f);
+            }
 
             return null;
         }
@@ -168,12 +180,18 @@ namespace osu.Game.Rulesets.Osu.UI
             return Math.Abs(a.Value - b.Value) <= 0.001f;
         }
 
+        private System.Collections.Generic.IEnumerable<OsuHitObject> drawableHitObjectsAtCurrentTime()
+            => forcedFlashlightMod.DrawableRuleset.Playfield.HitObjectContainer.AliveEntries
+                                .Select(e => e.Value.HitObject)
+                                .OfType<OsuHitObject>();
+
         public static bool HasAnyForcedFlashlightSection(IBeatmap beatmap)
             => beatmap.SectionGimmicks.Sections.Any(s => s.Settings.ForceFlashlight)
                || beatmap.HitObjectGimmicks.Entries.Any(e => e.Settings?.ForceFlashlight == true);
 
         private sealed class SectionForcedFlashlightMod : ModFlashlight<OsuHitObject>, IApplicableToDrawableHitObject
         {
+            public DrawableRuleset<OsuHitObject> DrawableRuleset { get; private set; } = null!;
             public override double ScoreMultiplier => 1;
 
             public override BindableFloat SizeMultiplier { get; } = new BindableFloat(1)
@@ -205,6 +223,12 @@ namespace osu.Game.Rulesets.Osu.UI
             {
                 if (drawable is DrawableSlider slider)
                     slider.OnUpdate += _ => flashlight?.OnSliderTrackingChange(slider);
+            }
+
+            public override void ApplyToDrawableRuleset(DrawableRuleset<OsuHitObject> drawableRuleset)
+            {
+                DrawableRuleset = drawableRuleset;
+                base.ApplyToDrawableRuleset(drawableRuleset);
             }
         }
 

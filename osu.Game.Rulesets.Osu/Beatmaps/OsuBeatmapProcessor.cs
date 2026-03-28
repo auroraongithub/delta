@@ -51,21 +51,25 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
         {
             base.PostProcess();
 
+            HitObjectGimmickBindingUtils.SynchroniseEntriesWithHitObjects(Beatmap);
+
             applySectionDifficultyOverrides(Beatmap);
             applySectionForcedMods(Beatmap);
 
-            ApplyStacking(Beatmap);
+            ApplyStacking(Beatmap, resolveFinalStackLeniency(Beatmap));
         }
 
         private static void applySectionForcedMods(IBeatmap beatmap)
         {
             var objectSettingsLookup = createObjectSettingsLookup(beatmap.HitObjectGimmicks);
+            var objectSettingsById = createObjectSettingsLookupByObjectId(beatmap.HitObjectGimmicks);
 
             if (beatmap.SectionGimmicks.Sections.Count == 0)
             {
                 foreach (var hitObject in beatmap.HitObjects.OfType<OsuHitObject>())
                 {
                     var objectSettings = getObjectSettings(hitObject, objectSettingsLookup);
+                    objectSettings ??= getObjectSettings(hitObject, objectSettingsById, objectSettingsLookup);
                     bool objectForceHidden = objectSettings?.ForceHidden == true;
                     bool objectForceHardRock = objectSettings?.ForceHardRock == true;
                     bool objectNoApproach = objectSettings?.ForceNoApproachCircle == true;
@@ -93,6 +97,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 // Always write the flag so drawable layer can reliably detect section-forced HD.
                 // Also propagate to nested objects because Hidden is applied per drawable hitobject.
                 var objectSettings = getObjectSettings(hitObject, objectSettingsLookup);
+                objectSettings ??= getObjectSettings(hitObject, objectSettingsById, objectSettingsLookup);
 
                 bool objectForceHidden = objectSettings?.ForceHidden == true;
                 setHiddenFlagRecursive(hitObject, (section?.Settings.ForceHidden == true) || objectForceHidden);
@@ -126,17 +131,20 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
         }
 
         private static Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> createObjectSettingsLookup(BeatmapHitObjectGimmicks gimmicks)
-        {
-            var lookup = new Dictionary<(double, int), HitObjectGimmickSettings>();
+            => HitObjectGimmickBindingUtils.CreateLookupByLegacyKey(gimmicks);
 
-            foreach (var entry in gimmicks.Entries)
-                lookup[(entry.StartTime, entry.ComboIndexWithOffsets)] = entry.Settings ?? new HitObjectGimmickSettings();
-
-            return lookup;
-        }
+        private static Dictionary<long, HitObjectGimmickSettings> createObjectSettingsLookupByObjectId(BeatmapHitObjectGimmicks gimmicks)
+            => HitObjectGimmickBindingUtils.CreateLookupByObjectId(gimmicks);
 
         private static HitObjectGimmickSettings? getObjectSettings(OsuHitObject hitObject, Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> lookup)
             => lookup.TryGetValue((hitObject.StartTime, hitObject.ComboIndexWithOffsets), out HitObjectGimmickSettings? settings) ? settings : null;
+
+        private static HitObjectGimmickSettings? getObjectSettings(OsuHitObject hitObject,
+                                                                    Dictionary<long, HitObjectGimmickSettings> objectIdLookup,
+                                                                    Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> legacyLookup)
+            => HitObjectGimmickBindingUtils.TryGetSettings(hitObject, objectIdLookup, legacyLookup, out var settings)
+                ? settings
+                : null;
 
         private static void setHiddenFlagRecursive(OsuHitObject osuObject, bool hidden)
         {
@@ -288,11 +296,13 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
             var sectionGradualBaselines = new Dictionary<int, BeatmapDifficulty>();
 
             var objectSettingsLookup = createObjectSettingsLookup(beatmap.HitObjectGimmicks);
+            var objectSettingsById = createObjectSettingsLookupByObjectId(beatmap.HitObjectGimmicks);
 
             foreach (var hitObject in beatmap.HitObjects.OfType<OsuHitObject>())
             {
                 SectionGimmickSection? section = SectionGimmickSectionResolver.Resolve(beatmap.SectionGimmicks, hitObject.StartTime);
                 HitObjectGimmickSettings? objectSettings = getObjectSettings(hitObject, objectSettingsLookup);
+                objectSettings ??= getObjectSettings(hitObject, objectSettingsById, objectSettingsLookup);
                 var difficulty = beatmap.Difficulty.Clone();
 
                 if (section?.Settings.EnableDifficultyOverrides == true)
@@ -346,8 +356,63 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                     difficulty.OverallDifficulty = SectionGimmickValueClamper.ClampOverallDifficulty(difficulty.OverallDifficulty);
                 }
 
+                double tickRate = resolveTickRateForObject(beatmap, section, objectSettings);
+                difficulty.SliderTickRate = tickRate;
+
                 hitObject.ApplyDefaults(beatmap.ControlPointInfo, difficulty);
             }
+        }
+
+        private static float resolveFinalStackLeniency(IBeatmap beatmap)
+        {
+            var objectSettingsLookup = createObjectSettingsLookup(beatmap.HitObjectGimmicks);
+            var objectSettingsById = createObjectSettingsLookupByObjectId(beatmap.HitObjectGimmicks);
+
+            float resolved = beatmap.StackLeniency;
+
+            foreach (var hitObject in beatmap.HitObjects.OfType<OsuHitObject>())
+            {
+                SectionGimmickSection? section = SectionGimmickSectionResolver.Resolve(beatmap.SectionGimmicks, hitObject.StartTime);
+                HitObjectGimmickSettings? objectSettings = getObjectSettings(hitObject, objectSettingsLookup);
+                objectSettings ??= getObjectSettings(hitObject, objectSettingsById, objectSettingsLookup);
+
+                if (section?.Settings.EnableDifficultyOverrides == true && !float.IsNaN(section.Settings.SectionStackLeniency))
+                {
+                    resolved = section.Settings.AllowUnsafeStackLeniencyOverrideValues
+                        ? section.Settings.SectionStackLeniency
+                        : SectionGimmickValueClamper.ClampStackLeniency(section.Settings.SectionStackLeniency);
+                }
+
+                if (objectSettings?.EnableDifficultyOverrides == true && !float.IsNaN(objectSettings.SectionStackLeniency))
+                {
+                    resolved = objectSettings.AllowUnsafeStackLeniencyOverrideValues
+                        ? objectSettings.SectionStackLeniency
+                        : SectionGimmickValueClamper.ClampStackLeniency(objectSettings.SectionStackLeniency);
+                }
+            }
+
+            return resolved;
+        }
+
+        private static double resolveTickRateForObject(IBeatmap beatmap, SectionGimmickSection? section, HitObjectGimmickSettings? objectSettings)
+        {
+            double tickRate = beatmap.Difficulty.SliderTickRate;
+
+            if (section?.Settings.EnableDifficultyOverrides == true && !double.IsNaN(section.Settings.SectionTickRate))
+            {
+                tickRate = section.Settings.AllowUnsafeTickRateOverrideValues
+                    ? section.Settings.SectionTickRate
+                    : SectionGimmickValueClamper.ClampTickRate(section.Settings.SectionTickRate);
+            }
+
+            if (objectSettings?.EnableDifficultyOverrides == true && !double.IsNaN(objectSettings.SectionTickRate))
+            {
+                tickRate = objectSettings.AllowUnsafeTickRateOverrideValues
+                    ? objectSettings.SectionTickRate
+                    : SectionGimmickValueClamper.ClampTickRate(objectSettings.SectionTickRate);
+            }
+
+            return tickRate;
         }
 
         private static BeatmapDifficulty computeSectionInheritedBaseline(List<SectionGimmickSection> orderedSections, SectionGimmickSection targetSection, BeatmapDifficulty baseDifficulty)
@@ -522,6 +587,9 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
         }
 
         internal static void ApplyStacking(IBeatmap beatmap)
+            => ApplyStacking(beatmap, beatmap.StackLeniency);
+
+        internal static void ApplyStacking(IBeatmap beatmap, float stackLeniency)
         {
             var hitObjects = beatmap.HitObjects as List<OsuHitObject> ?? beatmap.HitObjects.OfType<OsuHitObject>().ToList();
 
@@ -532,13 +600,13 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                     h.StackHeight = 0;
 
                 if (beatmap.BeatmapVersion >= 6)
-                    applyStacking(beatmap, hitObjects, 0, hitObjects.Count - 1);
+                    applyStacking(beatmap, hitObjects, 0, hitObjects.Count - 1, stackLeniency);
                 else
-                    applyStackingOld(beatmap, hitObjects);
+                    applyStackingOld(beatmap, hitObjects, stackLeniency);
             }
         }
 
-        private static void applyStacking(IBeatmap beatmap, List<OsuHitObject> hitObjects, int startIndex, int endIndex)
+        private static void applyStacking(IBeatmap beatmap, List<OsuHitObject> hitObjects, int startIndex, int endIndex, float stackLeniency)
         {
             ArgumentOutOfRangeException.ThrowIfGreaterThan(startIndex, endIndex);
             ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
@@ -563,7 +631,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                             continue;
 
                         double endTime = stackBaseObject.GetEndTime();
-                        float stackThreshold = calculateStackThreshold(beatmap, objectN);
+                        float stackThreshold = calculateStackThreshold(objectN, stackLeniency);
 
                         if (objectN.StartTime - endTime > stackThreshold)
                             // We are no longer within stacking range of the next object.
@@ -608,7 +676,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 OsuHitObject objectI = hitObjects[i];
                 if (objectI.StackHeight != 0 || objectI is Spinner) continue;
 
-                float stackThreshold = calculateStackThreshold(beatmap, objectI);
+                float stackThreshold = calculateStackThreshold(objectI, stackLeniency);
 
                 /* If this object is a hitcircle, then we enter this "special" case.
                  * It either ends with a stack of hitcircles only, or a stack of hitcircles that are underneath a slider.
@@ -693,7 +761,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
             }
         }
 
-        private static void applyStackingOld(IBeatmap beatmap, List<OsuHitObject> hitObjects)
+        private static void applyStackingOld(IBeatmap beatmap, List<OsuHitObject> hitObjects, float stackLeniency)
         {
             for (int i = 0; i < hitObjects.Count; i++)
             {
@@ -707,7 +775,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
 
                 for (int j = i + 1; j < hitObjects.Count; j++)
                 {
-                    float stackThreshold = calculateStackThreshold(beatmap, hitObjects[i]);
+                    float stackThreshold = calculateStackThreshold(hitObjects[i], stackLeniency);
 
                     if (hitObjects[j].StartTime - stackThreshold > startTime)
                         break;
@@ -749,7 +817,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
         /// see <see cref="OsuHitObject.ApplyDefaultsToSelf"/> using <see cref="IBeatmapDifficultyInfo.DifficultyRangeInt"/> when calculating it.
         /// Slider ticks and end circles are the exception to that, but they do not matter for stacking.
         /// </remarks>
-        private static float calculateStackThreshold(IBeatmap beatmap, OsuHitObject hitObject)
-            => (int)hitObject.TimePreempt * beatmap.StackLeniency;
+        private static float calculateStackThreshold(OsuHitObject hitObject, float stackLeniency)
+            => (int)hitObject.TimePreempt * stackLeniency;
     }
 }

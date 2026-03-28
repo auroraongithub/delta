@@ -11,6 +11,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Utils;
 using osu.Game.Beatmaps;
+using osu.Game.Beatmaps.HitObjectGimmicks;
 using osu.Game.Beatmaps.SectionGimmicks;
 using osu.Game.Configuration;
 using osu.Game.Rulesets.Mods;
@@ -74,7 +75,8 @@ namespace osu.Game.Rulesets.Osu.UI
 
         private bool initialDisplayJudgements;
         private readonly HashSet<DrawableHitObject> processedDrawables = new HashSet<DrawableHitObject>();
-        private readonly Dictionary<(double StartTime, int ComboIndexWithOffsets), SectionGimmickSettings?> startSettingsCache = new Dictionary<(double StartTime, int ComboIndexWithOffsets), SectionGimmickSettings?>();
+        private readonly Dictionary<long, HitObjectGimmickSettings> objectSettingsById = new Dictionary<long, HitObjectGimmickSettings>();
+        private readonly Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> objectSettingsByLegacyKey = new Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings>();
 
         [Resolved(canBeNull: true)]
         private OsuConfigManager? config { get; set; }
@@ -92,6 +94,9 @@ namespace osu.Game.Rulesets.Osu.UI
             this.selectedMods = selectedMods;
 
             gimmicks = beatmap.SectionGimmicks;
+            var hitObjectGimmicks = beatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks();
+            objectSettingsById = HitObjectGimmickBindingUtils.CreateLookupByObjectId(hitObjectGimmicks);
+            objectSettingsByLegacyKey = HitObjectGimmickBindingUtils.CreateLookupByLegacyKey(hitObjectGimmicks);
 
             RelativeSizeAxes = Axes.Both;
         }
@@ -565,15 +570,49 @@ namespace osu.Game.Rulesets.Osu.UI
             if (hitObject is not OsuHitObject osuHitObject)
                 return null;
 
-            var key = (osuHitObject.StartTime, osuHitObject.ComboIndexWithOffsets);
+            if (HitObjectGimmickBindingUtils.TryGetSettings(osuHitObject, objectSettingsById, objectSettingsByLegacyKey, out var objectSettings))
+                return mapToSectionSettings(objectSettings);
 
-            if (startSettingsCache.TryGetValue(key, out var settings))
-                return settings;
-
-            settings = resolveSettingsAtTime(osuHitObject.StartTime);
-            startSettingsCache[key] = settings;
-            return settings;
+            return resolveSettingsAtTime(osuHitObject.StartTime);
         }
+
+        private static SectionGimmickSettings mapToSectionSettings(HitObjectGimmickSettings source)
+            => new SectionGimmickSettings
+            {
+                EnableHPGimmick = source.EnableHPGimmick,
+                EnableNoMiss = source.EnableNoMiss,
+                EnableCountLimits = source.EnableCountLimits,
+                EnableGreatOffsetPenalty = source.EnableGreatOffsetPenalty,
+
+                Max300s = source.Max300s,
+                Max100s = source.Max100s,
+                Max50s = source.Max50s,
+                MaxMisses = source.MaxMisses,
+
+                HP300 = source.HP300,
+                HP100 = source.HP100,
+                HP50 = source.HP50,
+                HPMiss = source.HPMiss,
+
+                GreatOffsetThresholdMs = source.GreatOffsetThresholdMs,
+                GreatOffsetPenaltyHP = source.GreatOffsetPenaltyHP,
+
+                EnableDifficultyOverrides = source.EnableDifficultyOverrides,
+                AllowUnsafeDifficultyOverrideValues = source.AllowUnsafeDifficultyOverrideValues,
+                SectionCircleSize = source.SectionCircleSize,
+                SectionApproachRate = source.SectionApproachRate,
+                SectionOverallDifficulty = source.SectionOverallDifficulty,
+                AllowUnsafeStackLeniencyOverrideValues = source.AllowUnsafeStackLeniencyOverrideValues,
+                SectionStackLeniency = source.SectionStackLeniency,
+                AllowUnsafeTickRateOverrideValues = source.AllowUnsafeTickRateOverrideValues,
+                SectionTickRate = source.SectionTickRate,
+
+                ForceHidden = source.ForceHidden,
+                ForceNoApproachCircle = source.ForceNoApproachCircle,
+                ForceHardRock = source.ForceHardRock,
+                ForceFlashlight = source.ForceFlashlight,
+                FlashlightRadius = source.FlashlightRadius,
+            };
 
         private bool hasAnyForced(Func<SectionGimmickSettings, bool> predicate)
             => gimmicks.Sections.Any(s => predicate(s.Settings));

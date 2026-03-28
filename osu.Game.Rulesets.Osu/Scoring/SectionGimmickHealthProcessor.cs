@@ -18,6 +18,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
         private readonly SectionGimmickCountTracker countTracker = new SectionGimmickCountTracker();
         private BeatmapSectionGimmicks gimmicks = new BeatmapSectionGimmicks();
         private BeatmapHitObjectGimmicks hitObjectGimmicks = new BeatmapHitObjectGimmicks();
+        private Dictionary<long, HitObjectGimmickSettings> objectSettingsById = new Dictionary<long, HitObjectGimmickSettings>();
         private Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> objectSettingsLookup = new Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings>();
         private SectionGimmickSection? activeSection;
 
@@ -32,6 +33,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
         {
             gimmicks = beatmap.SectionGimmicks ?? new BeatmapSectionGimmicks();
             hitObjectGimmicks = beatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks();
+            objectSettingsById = createObjectSettingsLookupByObjectId(hitObjectGimmicks);
             objectSettingsLookup = createObjectSettingsLookup(hitObjectGimmicks);
             SectionGimmicksValidator.Validate(gimmicks);
             base.ApplyBeatmap(beatmap);
@@ -104,14 +106,10 @@ namespace osu.Game.Rulesets.Osu.Scoring
         }
 
         private static Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> createObjectSettingsLookup(BeatmapHitObjectGimmicks gimmicks)
-        {
-            var lookup = new Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings>();
+            => HitObjectGimmickBindingUtils.CreateLookupByLegacyKey(gimmicks);
 
-            foreach (var entry in gimmicks.Entries)
-                lookup[(entry.StartTime, entry.ComboIndexWithOffsets)] = entry.Settings ?? new HitObjectGimmickSettings();
-
-            return lookup;
-        }
+        private static Dictionary<long, HitObjectGimmickSettings> createObjectSettingsLookupByObjectId(BeatmapHitObjectGimmicks gimmicks)
+            => HitObjectGimmickBindingUtils.CreateLookupByObjectId(gimmicks);
 
         protected override double GetHealthIncreaseFor(JudgementResult result)
         {
@@ -243,7 +241,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
             if (hitObject is not OsuHitObject osuHitObject)
                 return null;
 
-            return objectSettingsLookup.TryGetValue((osuHitObject.StartTime, osuHitObject.ComboIndexWithOffsets), out var settings)
+            return HitObjectGimmickBindingUtils.TryGetSettings(osuHitObject, objectSettingsById, objectSettingsLookup, out var settings)
                 ? settings
                 : null;
         }

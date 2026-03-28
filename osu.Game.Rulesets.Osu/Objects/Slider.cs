@@ -133,8 +133,10 @@ namespace osu.Game.Rulesets.Osu.Objects
 
         public BindableNumber<double> SliderVelocityMultiplierBindable { get; } = new BindableDouble(1)
         {
-            MinValue = 0.1,
-            MaxValue = 10
+            MinValue = 0,
+            // Keep a finite upper bound to avoid framework decimal overflow in proportional slider calculations.
+            // This effectively removes the old 10x cap while staying stable.
+            MaxValue = 1000
         };
 
         public double SliderVelocityMultiplier

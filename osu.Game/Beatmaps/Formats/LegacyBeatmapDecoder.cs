@@ -709,6 +709,10 @@ namespace osu.Game.Beatmaps.Formats
                         case "SectionOverallDifficultyStartTimeMs": section.Settings.SectionOverallDifficultyStartTimeMs = Parsing.ParseFloat(value); break;
                         case "SectionOverallDifficultyEndTimeMs": section.Settings.SectionOverallDifficultyEndTimeMs = Parsing.ParseFloat(value); break;
                         case "EnableGradualSectionOverallDifficultyChange": section.Settings.EnableGradualSectionOverallDifficultyChange = parseBool(value); break;
+                        case "AllowUnsafeStackLeniencyOverrideValues": section.Settings.AllowUnsafeStackLeniencyOverrideValues = parseBool(value); break;
+                        case "SectionStackLeniency": section.Settings.SectionStackLeniency = Parsing.ParseFloat(value); break;
+                        case "AllowUnsafeTickRateOverrideValues": section.Settings.AllowUnsafeTickRateOverrideValues = parseBool(value); break;
+                        case "SectionTickRate": section.Settings.SectionTickRate = Parsing.ParseDouble(value); break;
                         case "ForceHidden": section.Settings.ForceHidden = parseBool(value); break;
                         case "ForceNoApproachCircle": section.Settings.ForceNoApproachCircle = parseBool(value); break;
                         case "ForceHardRock": section.Settings.ForceHardRock = parseBool(value); break;
@@ -804,6 +808,10 @@ namespace osu.Game.Beatmaps.Formats
                         case "EnableHPGimmick":
                             entry.Settings.EnableHPGimmick = parseBool(value);
                             break;
+                        case "ObjectId":
+                            if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long objectId))
+                                entry.ObjectId = objectId;
+                            break;
                         case "EnableNoMiss":
                             entry.Settings.EnableNoMiss = parseBool(value);
                             break;
@@ -857,6 +865,18 @@ namespace osu.Game.Beatmaps.Formats
                             break;
                         case "SectionOverallDifficulty":
                             entry.Settings.SectionOverallDifficulty = Parsing.ParseFloat(value);
+                            break;
+                        case "AllowUnsafeStackLeniencyOverrideValues":
+                            entry.Settings.AllowUnsafeStackLeniencyOverrideValues = parseBool(value);
+                            break;
+                        case "SectionStackLeniency":
+                            entry.Settings.SectionStackLeniency = Parsing.ParseFloat(value);
+                            break;
+                        case "AllowUnsafeTickRateOverrideValues":
+                            entry.Settings.AllowUnsafeTickRateOverrideValues = parseBool(value);
+                            break;
+                        case "SectionTickRate":
+                            entry.Settings.SectionTickRate = Parsing.ParseDouble(value);
                             break;
                         case "ForceHidden":
                             entry.Settings.ForceHidden = parseBool(value);
