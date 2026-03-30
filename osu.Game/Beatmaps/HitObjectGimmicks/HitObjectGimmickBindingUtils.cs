@@ -18,79 +18,188 @@ namespace osu.Game.Beatmaps.HitObjectGimmicks
 
         public static void EnsureObjectIds(IEnumerable<HitObject> hitObjects)
         {
-            foreach (var hitObject in hitObjects)
+            var objectList = hitObjects.ToList();
+            var usedObjectIds = new HashSet<long>();
+
+            foreach (var hitObject in objectList)
             {
-                if (!hitObject.GimmickObjectId.HasValue)
-                    hitObject.GimmickObjectId = GenerateNewObjectId();
+                if (hitObject.GimmickObjectId.HasValue && usedObjectIds.Add(hitObject.GimmickObjectId.Value))
+                    continue;
+
+                hitObject.GimmickObjectId = generateUniqueObjectId(usedObjectIds);
             }
         }
 
         public static void SynchroniseEntriesWithHitObjects(IBeatmap beatmap)
         {
-            EnsureObjectIds(beatmap.HitObjects);
+            var hitObjects = beatmap.HitObjects.ToList();
 
             var gimmicks = beatmap.HitObjectGimmicks;
 
-            if (gimmicks == null || gimmicks.Entries.Count == 0)
-                return;
-
-            var byObjectId = beatmap.HitObjects
-                                     .Where(h => h.GimmickObjectId.HasValue)
-                                     .ToDictionary(h => h.GimmickObjectId!.Value, h => h);
-
-            var byLegacyKey = beatmap.HitObjects
-                                     .OfType<IHasComboInformation>()
-                                     .GroupBy(h => (((HitObject)h).StartTime, h.ComboIndexWithOffsets))
-                                     .ToDictionary(g => g.Key, g => new Queue<HitObject>(g.Cast<HitObject>()));
-
-            var byStartTime = beatmap.HitObjects
-                                     .OfType<IHasComboInformation>()
-                                     .Select(h => (hitObject: (HitObject)h, combo: h.ComboIndexWithOffsets))
-                                     .GroupBy(v => v.hitObject.StartTime)
-                                     .ToDictionary(g => g.Key, g => new Queue<HitObject>(g.OrderBy(v => v.combo).Select(v => v.hitObject)));
-
-            var entries = gimmicks.Entries;
-
-            foreach (var entry in entries)
+            if (gimmicks == null)
             {
-                if (entry == null)
-                    continue;
-
-                if (entry.ObjectId.HasValue)
-                    continue;
-
-                if (byLegacyKey.TryGetValue((entry.StartTime, entry.ComboIndexWithOffsets), out Queue<HitObject>? legacyCandidates)
-                    && legacyCandidates.Count > 0)
-                {
-                    HitObject matched = legacyCandidates.Dequeue();
-                    entry.ObjectId = matched.GimmickObjectId;
-                    continue;
-                }
-
-                if (byStartTime.TryGetValue(entry.StartTime, out Queue<HitObject>? timeCandidates)
-                    && timeCandidates.Count > 0)
-                {
-                    HitObject matched = timeCandidates.Dequeue();
-                    entry.ObjectId = matched.GimmickObjectId;
-                }
+                EnsureObjectIds(hitObjects);
+                return;
             }
 
-            foreach (var entry in entries)
+            if (gimmicks.Entries.Count == 0)
             {
+                EnsureObjectIds(hitObjects);
+                return;
+            }
+
+            var usedObjectIds = new HashSet<long>(hitObjects.Where(h => h.GimmickObjectId.HasValue).Select(h => h.GimmickObjectId!.Value));
+
+            var byObjectId = hitObjects
+                             .Where(h => h.GimmickObjectId.HasValue)
+                             .GroupBy(h => h.GimmickObjectId!.Value)
+                             .ToDictionary(g => g.Key, g => new Queue<HitObject>(g));
+
+            var byLegacyKey = hitObjects
+                             .OfType<IHasComboInformation>()
+                             .GroupBy(h => (((HitObject)h).StartTime, h.ComboIndexWithOffsets))
+                             .ToDictionary(g => g.Key, g => new Queue<HitObject>(g.Cast<HitObject>()));
+
+            var byStartTime = hitObjects
+                             .OfType<IHasComboInformation>()
+                             .Select(h => (hitObject: (HitObject)h, combo: h.ComboIndexWithOffsets))
+                             .GroupBy(v => v.hitObject.StartTime)
+                             .ToDictionary(g => g.Key, g => new Queue<HitObject>(g.OrderBy(v => v.combo).Select(v => v.hitObject)));
+
+            var entries = gimmicks.Entries;
+            var claimedHitObjects = new HashSet<HitObject>();
+            var boundEntries = new List<(HitObjectGimmickEntry entry, HitObject hitObject)>();
+
+            // Iterate backwards so newest entries win if duplicates exist in file.
+            for (int i = entries.Count - 1; i >= 0; i--)
+            {
+                var entry = entries[i];
+
                 if (entry == null)
                     continue;
 
-                if (!entry.ObjectId.HasValue)
+                HitObject? matched = null;
+
+                if (entry.ObjectId.HasValue
+                    && byObjectId.TryGetValue(entry.ObjectId.Value, out Queue<HitObject>? objectIdCandidates)
+                    && tryDequeueUnclaimed(objectIdCandidates, claimedHitObjects, out matched))
+                {
+                    // matched by existing object id.
+                }
+
+                if (matched == null
+                    && byLegacyKey.TryGetValue((entry.StartTime, entry.ComboIndexWithOffsets), out Queue<HitObject>? legacyCandidates)
+                    && tryDequeueUnclaimed(legacyCandidates, claimedHitObjects, out matched))
+                {
+                    // matched by legacy key.
+                }
+
+                if (matched == null
+                    && byStartTime.TryGetValue(entry.StartTime, out Queue<HitObject>? timeCandidates)
+                    && tryDequeueUnclaimed(timeCandidates, claimedHitObjects, out matched))
+                {
+                    // matched by start-time fallback.
+                }
+
+                if (matched == null)
                     continue;
 
-                if (!byObjectId.TryGetValue(entry.ObjectId.Value, out HitObject? hitObject))
-                    continue;
+                if (!matched.GimmickObjectId.HasValue)
+                {
+                    if (entry.ObjectId.HasValue)
+                    {
+                        bool objectIdUsedByAnotherObject = hitObjects.Any(h => !ReferenceEquals(h, matched) && h.GimmickObjectId == entry.ObjectId);
 
+                        matched.GimmickObjectId = objectIdUsedByAnotherObject
+                            ? generateUniqueObjectId(usedObjectIds)
+                            : entry.ObjectId;
+                    }
+                    else
+                        matched.GimmickObjectId = generateUniqueObjectId(usedObjectIds);
+                }
+                else if (entry.ObjectId.HasValue && matched.GimmickObjectId.Value != entry.ObjectId.Value)
+                {
+                    // Preserve persisted id when possible, falling back to the matched object's id if conflicting.
+                    bool persistedIdInUseByOtherObject = hitObjects.Any(h => !ReferenceEquals(h, matched) && h.GimmickObjectId == entry.ObjectId);
+
+                    if (!persistedIdInUseByOtherObject)
+                        matched.GimmickObjectId = entry.ObjectId;
+                    else
+                        entry.ObjectId = matched.GimmickObjectId;
+                }
+
+                boundEntries.Add((entry, matched));
+            }
+
+            var validEntries = boundEntries.Select(b => b.entry).ToHashSet();
+            entries.RemoveAll(e => e == null || !validEntries.Contains(e));
+
+            EnsureObjectIds(hitObjects);
+
+            foreach (var (entry, hitObject) in boundEntries)
+            {
+                entry.ObjectId = hitObject.GimmickObjectId;
                 entry.StartTime = hitObject.StartTime;
 
                 if (hitObject is IHasComboInformation comboInformation)
                     entry.ComboIndexWithOffsets = comboInformation.ComboIndexWithOffsets;
             }
+
+            // Collapse duplicate entries for the same object id, keeping the latest one.
+            var latestByObjectId = new Dictionary<long, HitObjectGimmickEntry>();
+
+            foreach (var entry in entries)
+            {
+                if (entry.ObjectId.HasValue)
+                    latestByObjectId[entry.ObjectId.Value] = entry;
+            }
+
+            entries.RemoveAll(e => e.ObjectId.HasValue
+                                   && latestByObjectId.TryGetValue(e.ObjectId.Value, out var latest)
+                                   && !ReferenceEquals(e, latest));
+
+            // Legacy-key dedupe for entries still lacking an object id.
+            var latestByLegacyKey = new Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickEntry>();
+
+            foreach (var entry in entries)
+            {
+                if (!entry.ObjectId.HasValue)
+                    latestByLegacyKey[(entry.StartTime, entry.ComboIndexWithOffsets)] = entry;
+            }
+
+            entries.RemoveAll(e => !e.ObjectId.HasValue
+                                   && latestByLegacyKey.TryGetValue((e.StartTime, e.ComboIndexWithOffsets), out var latest)
+                                   && !ReferenceEquals(e, latest));
+        }
+
+        private static long generateUniqueObjectId(HashSet<long> usedObjectIds)
+        {
+            long id;
+
+            do
+            {
+                id = GenerateNewObjectId();
+            }
+            while (!usedObjectIds.Add(id));
+
+            return id;
+        }
+
+        private static bool tryDequeueUnclaimed(Queue<HitObject>? candidates, HashSet<HitObject> claimed, out HitObject? hitObject)
+        {
+            while (candidates != null && candidates.Count > 0)
+            {
+                var candidate = candidates.Dequeue();
+
+                if (claimed.Add(candidate))
+                {
+                    hitObject = candidate;
+                    return true;
+                }
+            }
+
+            hitObject = null;
+            return false;
         }
 
         public static Dictionary<long, HitObjectGimmickSettings> CreateLookupByObjectId(BeatmapHitObjectGimmicks gimmicks)

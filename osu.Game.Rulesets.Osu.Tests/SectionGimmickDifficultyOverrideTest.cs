@@ -660,6 +660,96 @@ namespace osu.Game.Rulesets.Osu.Tests
         }
 
         [Test]
+        public void TestDeletedHitObjectGimmickEntriesAreRemovedAndDuplicateObjectEntriesCollapsed()
+        {
+            var first = new HitCircle { StartTime = 500 };
+            var second = new HitCircle { StartTime = 700, NewCombo = true, ComboOffset = 1 };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(first);
+            beatmap.HitObjects.Add(second);
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+
+            first.UpdateComboInformation(null);
+            second.UpdateComboInformation(first);
+
+            first.GimmickObjectId = 111;
+            second.GimmickObjectId = 222;
+
+            beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
+            {
+                ObjectId = 111,
+                StartTime = first.StartTime,
+                ComboIndexWithOffsets = first.ComboIndexWithOffsets,
+                Settings = new HitObjectGimmickSettings { ForceNoApproachCircle = false }
+            });
+
+            beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
+            {
+                ObjectId = 111,
+                StartTime = first.StartTime,
+                ComboIndexWithOffsets = first.ComboIndexWithOffsets,
+                Settings = new HitObjectGimmickSettings { ForceNoApproachCircle = true }
+            });
+
+            beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
+            {
+                ObjectId = 999,
+                StartTime = 1200,
+                ComboIndexWithOffsets = 0,
+                Settings = new HitObjectGimmickSettings { ForceHardRock = true }
+            });
+
+            processor.PostProcess();
+
+            Assert.That(beatmap.HitObjectGimmicks.Entries.Count(e => e.ObjectId == 111), Is.EqualTo(1));
+            Assert.That(beatmap.HitObjectGimmicks.Entries.Single(e => e.ObjectId == 111).Settings.ForceNoApproachCircle, Is.True);
+            Assert.That(beatmap.HitObjectGimmicks.Entries.All(e => e.ObjectId != 999), Is.True);
+        }
+
+        [Test]
+        public void TestEntryObjectIdRemapsToCurrentObjectIdAfterReloadLikeMismatch()
+        {
+            var first = new HitCircle { StartTime = 500 };
+            var second = new HitCircle { StartTime = 700, NewCombo = true, ComboOffset = 1 };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(first);
+            beatmap.HitObjects.Add(second);
+
+            var processor = new OsuBeatmapProcessor(beatmap);
+            processor.PreProcess();
+
+            foreach (var obj in beatmap.HitObjects)
+                obj.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+
+            first.UpdateComboInformation(null);
+            second.UpdateComboInformation(first);
+
+            // Simulate reopen where object got a different runtime-generated id.
+            first.GimmickObjectId = 5001;
+
+            beatmap.HitObjectGimmicks.Entries.Add(new HitObjectGimmickEntry
+            {
+                ObjectId = 7777,
+                StartTime = first.StartTime,
+                ComboIndexWithOffsets = first.ComboIndexWithOffsets,
+                Settings = new HitObjectGimmickSettings { ForceHidden = true }
+            });
+
+            processor.PostProcess();
+
+            var entry = beatmap.HitObjectGimmicks.Entries.Single();
+            Assert.That(entry.ObjectId, Is.EqualTo(first.GimmickObjectId));
+            Assert.That(entry.Settings.ForceHidden, Is.True);
+        }
+
+        [Test]
         public void TestSectionTickRateOverrideAppliesToSliderTickGeneration()
         {
             var slider = new Slider
