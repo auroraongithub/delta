@@ -178,7 +178,31 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                         };
 
                         copyCommonOsuValues(hitCircle, fakeCircle);
+                        fakeCircle.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
                         hitObjects[i] = fakeCircle;
+                        break;
+                    }
+
+                    case Slider slider when osuObject is not FakeSlider:
+                    {
+                        var fakeSlider = new FakeSlider
+                        {
+                            FakePunishMode = objectSettings.FakePunishMode,
+                            FakePlayHitsound = objectSettings.FakePlayHitsound,
+                            FakeRevealEnabled = objectSettings.FakeRevealEnabled,
+                            FakeRevealRed = objectSettings.FakeRevealRed,
+                            FakeRevealGreen = objectSettings.FakeRevealGreen,
+                            FakeRevealBlue = objectSettings.FakeRevealBlue,
+                            FakeRevealStrength = objectSettings.FakeRevealStrength,
+                            FakeRevealLeadInStartMs = objectSettings.FakeRevealLeadInStartMs,
+                            FakeRevealLeadInLengthMs = objectSettings.FakeRevealLeadInLengthMs,
+                            FakeRevealFadeOutStartMs = objectSettings.FakeRevealFadeOutStartMs,
+                            FakeRevealFadeOutLengthMs = objectSettings.FakeRevealFadeOutLengthMs,
+                        };
+
+                        copyCommonSliderValues(slider, fakeSlider);
+                        fakeSlider.ApplyDefaults(beatmap.ControlPointInfo, beatmap.Difficulty);
+                        hitObjects[i] = fakeSlider;
                         break;
                     }
 
@@ -194,6 +218,19 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
             target.ComboOffset = source.ComboOffset;
             target.GimmickObjectId = source.GimmickObjectId;
             target.Samples = source.Samples.ToList();
+        }
+
+        private static void copyCommonSliderValues(Slider source, Slider target)
+        {
+            copyCommonOsuValues(source, target);
+
+            target.Path = source.Path;
+            target.RepeatCount = source.RepeatCount;
+            target.NodeSamples = source.NodeSamples.Select(node => (IList<osu.Game.Audio.HitSampleInfo>)node.ToList()).ToList();
+            target.TickDistanceMultiplier = source.TickDistanceMultiplier;
+            target.SliderVelocityMultiplier = source.SliderVelocityMultiplier;
+            target.GenerateTicks = source.GenerateTicks;
+            target.ClassicSliderBehaviour = source.ClassicSliderBehaviour;
         }
 
         private static Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> createObjectSettingsLookup(BeatmapHitObjectGimmicks gimmicks)

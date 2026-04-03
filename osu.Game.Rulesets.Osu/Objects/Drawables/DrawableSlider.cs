@@ -31,8 +31,11 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
 
         public new OsuSliderJudgementResult Result => (OsuSliderJudgementResult)base.Result;
 
-        public DrawableSliderHead HeadCircle => headContainer.Child;
-        public DrawableSliderTail TailCircle => tailContainer.Child;
+        private readonly DrawableSliderHead missingHeadFallback = new DrawableSliderHead();
+        private readonly DrawableSliderTail missingTailFallback = new DrawableSliderTail();
+
+        public DrawableSliderHead HeadCircle => headContainer.Children.FirstOrDefault() as DrawableSliderHead ?? missingHeadFallback;
+        public DrawableSliderTail TailCircle => tailContainer.Children.FirstOrDefault() as DrawableSliderTail ?? missingTailFallback;
 
         [Cached]
         public DrawableSliderBall Ball { get; private set; }
