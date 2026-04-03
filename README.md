@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ppy/osu/master/assets/osudelta.png" width="180" alt="osu! logo" />
+  <img src="https://raw.githubusercontent.com/auroraongithub/delta/master/assets/osudelta.png" width="180" alt="osu! logo" />
 </p>
 
 # delta (deltalazer)
