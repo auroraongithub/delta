@@ -1245,11 +1245,11 @@ namespace osu.Game.Rulesets.Osu.Edit
             bindSliderSetting(sectionStackLeniency, (s, v) => s.SectionStackLeniency = v, v => isUnsafeStackLeniencyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampStackLeniency(v));
             bindSliderSetting(sectionTickRate, (s, v) => s.SectionTickRate = v, v => isUnsafeTickRateOverrideEnabled() ? v : SectionGimmickValueClamper.ClampTickRate(v));
 
-            sectionCircleSize.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
-            sectionApproachRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
-            sectionOverallDifficulty.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
-            sectionStackLeniency.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
-            sectionTickRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionCircleSize.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
+            sectionApproachRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
+            sectionOverallDifficulty.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
+            sectionStackLeniency.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
+            sectionTickRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
 
             forceHidden.Current.BindValueChanged(v => mutateSetting(s => s.ForceHidden = v.NewValue));
             forceNoApproachCircle.Current.BindValueChanged(v => mutateSetting(s => s.ForceNoApproachCircle = v.NewValue));
@@ -1847,11 +1847,26 @@ namespace osu.Game.Rulesets.Osu.Edit
                 || sectionTickRate.Current.Disabled)
                 return;
 
-            sectionCircleSize.Current.Default = editorBeatmap.Difficulty.CircleSize;
-            sectionApproachRate.Current.Default = editorBeatmap.Difficulty.ApproachRate;
-            sectionOverallDifficulty.Current.Default = editorBeatmap.Difficulty.OverallDifficulty;
-            sectionStackLeniency.Current.Default = editorBeatmap.StackLeniency;
-            sectionTickRate.Current.Default = editorBeatmap.Difficulty.SliderTickRate;
+            trySetDefault(sectionCircleSize.Current, editorBeatmap.Difficulty.CircleSize);
+            trySetDefault(sectionApproachRate.Current, editorBeatmap.Difficulty.ApproachRate);
+            trySetDefault(sectionOverallDifficulty.Current, editorBeatmap.Difficulty.OverallDifficulty);
+            trySetDefault(sectionStackLeniency.Current, editorBeatmap.StackLeniency);
+            trySetDefault(sectionTickRate.Current, editorBeatmap.Difficulty.SliderTickRate);
+
+            static void trySetDefault<T>(Bindable<T> bindable, T value)
+            {
+                if (bindable.Disabled)
+                    return;
+
+                try
+                {
+                    bindable.Default = value;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Can happen during early load when controls are transiently disabled.
+                }
+            }
         }
 
         private void postUnsafeDifficultyWarning()

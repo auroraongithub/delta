@@ -139,6 +139,7 @@ namespace osu.Game.Rulesets.Osu.UI
             var osuBeatmap = (OsuBeatmap?)beatmap;
 
             RegisterPool<HitCircle, DrawableHitCircle>(20, 100);
+            RegisterPool<FakeHitCircle, DrawableFakeHitCircle>(20, 100);
 
             // handle edge cases where a beatmap has a slider with many repeats.
             int maxRepeatsOnOneSlider = 0;
@@ -154,6 +155,7 @@ namespace osu.Game.Rulesets.Osu.UI
             }
 
             RegisterPool<Slider, DrawableSlider>(20, 100);
+            RegisterPool<FakeSlider, DrawableFakeSlider>(20, 100);
             RegisterPool<SliderHeadCircle, DrawableSliderHead>(20, 100);
             RegisterPool<SliderTailCircle, DrawableSliderTail>(20, 100);
             RegisterPool<SliderTick, DrawableSliderTick>(Math.Max(maxTicksOnOneSlider, 20), Math.Max(maxTicksOnOneSlider, 200));

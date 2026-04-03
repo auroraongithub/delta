@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using osu.Game.Beatmaps.HitObjectGimmicks;
@@ -17,6 +18,8 @@ namespace osu.Game.Rulesets.Osu.Edit
             public readonly bool HasSelection;
             public readonly int SelectionCount;
             public readonly bool EnableHPGimmick;
+            public readonly bool IsFakeNote;
+            public readonly FakePunishMode FakePunishMode;
             public readonly bool EnableNoMiss;
             public readonly bool EnableCountLimits;
             public readonly bool EnableGreatOffsetPenalty;
@@ -26,12 +29,14 @@ namespace osu.Game.Rulesets.Osu.Edit
             public readonly bool ForceHardRock;
             public readonly bool ForceFlashlight;
             public readonly bool ForceNoApproachCircle;
-            public readonly SectionGimmickSettings? RepresentativeSettings;
+            public readonly HitObjectGimmickSettings? RepresentativeSettings;
 
             public SelectionState(
                 bool hasSelection,
                 int selectionCount,
                 bool enableHpGimmick,
+                bool isFakeNote,
+                FakePunishMode fakePunishMode,
                 bool enableNoMiss,
                 bool enableCountLimits,
                 bool enableGreatOffsetPenalty,
@@ -41,11 +46,13 @@ namespace osu.Game.Rulesets.Osu.Edit
                 bool forceHardRock,
                 bool forceFlashlight,
                 bool forceNoApproachCircle,
-                SectionGimmickSettings? representativeSettings)
+                HitObjectGimmickSettings? representativeSettings)
             {
                 HasSelection = hasSelection;
                 SelectionCount = selectionCount;
                 EnableHPGimmick = enableHpGimmick;
+                IsFakeNote = isFakeNote;
+                FakePunishMode = fakePunishMode;
                 EnableNoMiss = enableNoMiss;
                 EnableCountLimits = enableCountLimits;
                 EnableGreatOffsetPenalty = enableGreatOffsetPenalty;
@@ -88,6 +95,32 @@ namespace osu.Game.Rulesets.Osu.Edit
         public bool IsSelectionEnableHPGimmick
             => getSelectionBoolState(s => s.EnableHPGimmick);
 
+        public bool IsSelectionFakeNote
+            => getSelectionBoolState(s => s.IsFakeNote);
+
+        public bool IsSelectionFakePunishAsMiss
+            => getSelectionBoolState(s => s.FakePunishMode == FakePunishMode.Miss);
+
+        public FakePunishMode SelectionFakePunishMode
+        {
+            get
+            {
+                var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+                HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
+
+                if (selected.Count == 0)
+                    return FakePunishMode.None;
+
+                var objectIdLookup = createObjectIdLookup(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
+                var lookup = createLookup(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
+
+                if (!tryGetSettings(selected[0], objectIdLookup, lookup, out var firstSettings))
+                    return FakePunishMode.None;
+
+                return firstSettings.FakePunishMode;
+            }
+        }
+
         public bool IsSelectionEnableNoMiss
             => getSelectionBoolState(s => s.EnableNoMiss);
 
@@ -115,7 +148,7 @@ namespace osu.Game.Rulesets.Osu.Edit
             HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
 
             if (selected.Count == 0)
-                return new SelectionState(false, 0, false, false, false, false, false, false, false, false, false, false, null);
+                return new SelectionState(false, 0, false, false, FakePunishMode.None, false, false, false, false, false, false, false, false, false, null);
 
             var objectIdLookup = createObjectIdLookup(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
             var lookup = createLookup(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
@@ -124,14 +157,16 @@ namespace osu.Game.Rulesets.Osu.Edit
                 => selected.All(h => tryGetSettings(h, objectIdLookup, lookup, out var settings) && getter(settings));
 
             var first = selected[0];
-            SectionGimmickSettings? representative = tryGetSettings(first, objectIdLookup, lookup, out var firstSettings)
-                ? mapToSectionSettings(firstSettings)
-                : new SectionGimmickSettings();
+            HitObjectGimmickSettings? representative = tryGetSettings(first, objectIdLookup, lookup, out var firstSettings)
+                ? HitObjectGimmickBindingUtils.CloneSettings(firstSettings)
+                : new HitObjectGimmickSettings();
 
             return new SelectionState(
                 hasSelection: true,
                 selectionCount: selected.Count,
                 enableHpGimmick: getBoolState(s => s.EnableHPGimmick),
+                isFakeNote: getBoolState(s => s.IsFakeNote),
+                fakePunishMode: SelectionFakePunishMode,
                 enableNoMiss: getBoolState(s => s.EnableNoMiss),
                 enableCountLimits: getBoolState(s => s.EnableCountLimits),
                 enableGreatOffsetPenalty: getBoolState(s => s.EnableGreatOffsetPenalty),
@@ -144,7 +179,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                 representativeSettings: representative);
         }
 
-        public SectionGimmickSettings? GetSelectionRepresentativeSettings()
+        public HitObjectGimmickSettings? GetSelectionRepresentativeSettings()
         {
             var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
             HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
@@ -157,9 +192,9 @@ namespace osu.Game.Rulesets.Osu.Edit
             var first = selected[0];
 
             if (!tryGetSettings(first, objectIdLookup, lookup, out var firstSettings))
-                return new SectionGimmickSettings();
+                return new HitObjectGimmickSettings();
 
-            return mapToSectionSettings(firstSettings);
+            return HitObjectGimmickBindingUtils.CloneSettings(firstSettings);
         }
 
         public void SetSelectionForceNoApproachCircle(bool enabled)
@@ -195,6 +230,29 @@ namespace osu.Game.Rulesets.Osu.Edit
             {
                 var entry = getOrCreateEntry(updated, hitObject);
                 setter(entry.Settings, enabled);
+                cleanupEntryIfEmpty(updated, entry);
+            }
+
+            editorBeatmap.BeginChange();
+            editorBeatmap.HitObjectGimmicks = updated;
+            editorBeatmap.UpdateAllHitObjects();
+            editorBeatmap.EndChange();
+        }
+
+        public void SetSelectionFakePunishMode(FakePunishMode mode)
+        {
+            var selected = editorBeatmap.SelectedHitObjects.OfType<OsuHitObject>().ToList();
+            HitObjectGimmickBindingUtils.EnsureObjectIds(selected);
+
+            if (selected.Count == 0)
+                return;
+
+            var updated = CloneHitObjectGimmicks(editorBeatmap.HitObjectGimmicks ?? new BeatmapHitObjectGimmicks());
+
+            foreach (var hitObject in selected)
+            {
+                var entry = getOrCreateEntry(updated, hitObject);
+                entry.Settings.FakePunishMode = mode;
                 cleanupEntryIfEmpty(updated, entry);
             }
 
@@ -290,6 +348,19 @@ namespace osu.Game.Rulesets.Osu.Edit
                         ComboIndexWithOffsets = e.ComboIndexWithOffsets,
                         Settings = new HitObjectGimmickSettings
                         {
+                            IsFakeNote = settings.IsFakeNote,
+                            FakePunishMode = settings.FakePunishMode,
+                            FakePlayHitsound = settings.FakePlayHitsound,
+                            FakeRevealEnabled = settings.FakeRevealEnabled,
+                            FakeRevealRed = settings.FakeRevealRed,
+                            FakeRevealGreen = settings.FakeRevealGreen,
+                            FakeRevealBlue = settings.FakeRevealBlue,
+                            FakeRevealStrength = settings.FakeRevealStrength,
+                            FakeRevealLeadInStartMs = settings.FakeRevealLeadInStartMs,
+                            FakeRevealLeadInLengthMs = settings.FakeRevealLeadInLengthMs,
+                            FakeRevealFadeOutStartMs = settings.FakeRevealFadeOutStartMs,
+                            FakeRevealFadeOutLengthMs = settings.FakeRevealFadeOutLengthMs,
+
                             EnableHPGimmick = settings.EnableHPGimmick,
                             EnableNoMiss = settings.EnableNoMiss,
                             EnableCountLimits = settings.EnableCountLimits,
@@ -413,6 +484,18 @@ namespace osu.Game.Rulesets.Osu.Edit
             var s = entry.Settings;
 
             bool hasAny = s.EnableHPGimmick
+                          || s.IsFakeNote
+                          || s.FakePunishMode != FakePunishMode.None
+                          || s.FakePlayHitsound
+                          || !s.FakeRevealEnabled
+                          || Math.Abs(s.FakeRevealRed - 1f) > 0.0001f
+                          || Math.Abs(s.FakeRevealGreen - 0.3019608f) > 0.0001f
+                          || Math.Abs(s.FakeRevealBlue - 0.3019608f) > 0.0001f
+                          || Math.Abs(s.FakeRevealStrength - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_STRENGTH) > 0.0001f
+                          || Math.Abs(s.FakeRevealLeadInStartMs - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_START_MS) > 0.0001f
+                          || Math.Abs(s.FakeRevealLeadInLengthMs - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_LENGTH_MS) > 0.0001f
+                          || Math.Abs(s.FakeRevealFadeOutStartMs - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_START_MS) > 0.0001f
+                          || Math.Abs(s.FakeRevealFadeOutLengthMs - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_LENGTH_MS) > 0.0001f
                           || s.EnableNoMiss
                           || s.EnableCountLimits
                           || s.EnableGreatOffsetPenalty
@@ -444,45 +527,6 @@ namespace osu.Game.Rulesets.Osu.Edit
             if (!hasAny)
                 gimmicks.Entries.Remove(entry);
         }
-
-        private static SectionGimmickSettings mapToSectionSettings(HitObjectGimmickSettings source)
-            => new SectionGimmickSettings
-            {
-                EnableHPGimmick = source.EnableHPGimmick,
-                EnableNoMiss = source.EnableNoMiss,
-                EnableCountLimits = source.EnableCountLimits,
-                EnableGreatOffsetPenalty = source.EnableGreatOffsetPenalty,
-
-                Max300s = source.Max300s,
-                Max100s = source.Max100s,
-                Max50s = source.Max50s,
-                MaxMisses = source.MaxMisses,
-
-                HP300 = source.HP300,
-                HP100 = source.HP100,
-                HP50 = source.HP50,
-                HPMiss = source.HPMiss,
-
-                GreatOffsetThresholdMs = source.GreatOffsetThresholdMs,
-                GreatOffsetPenaltyHP = source.GreatOffsetPenaltyHP,
-
-                EnableDifficultyOverrides = source.EnableDifficultyOverrides,
-                AllowUnsafeDifficultyOverrideValues = source.AllowUnsafeDifficultyOverrideValues,
-                SectionCircleSize = source.SectionCircleSize,
-                SectionApproachRate = source.SectionApproachRate,
-                SectionOverallDifficulty = source.SectionOverallDifficulty,
-                AllowUnsafeStackLeniencyOverrideValues = source.AllowUnsafeStackLeniencyOverrideValues,
-                SectionStackLeniency = source.SectionStackLeniency,
-                AllowUnsafeTickRateOverrideValues = source.AllowUnsafeTickRateOverrideValues,
-                SectionTickRate = source.SectionTickRate,
-
-                ForceHidden = source.ForceHidden,
-                ForceNoApproachCircle = source.ForceNoApproachCircle,
-                ForceHardRock = source.ForceHardRock,
-                ForceFlashlight = source.ForceFlashlight,
-                ForceTraceable = source.ForceTraceable,
-                FlashlightRadius = source.FlashlightRadius,
-            };
 
         private static Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> createLookup(BeatmapHitObjectGimmicks gimmicks)
             => HitObjectGimmickBindingUtils.CreateLookupByLegacyKey(gimmicks);

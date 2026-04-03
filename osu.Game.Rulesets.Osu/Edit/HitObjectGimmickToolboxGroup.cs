@@ -15,6 +15,7 @@ using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays.Notifications;
 using osu.Game.Rulesets.Edit;
+using osu.Game.Beatmaps.HitObjectGimmicks;
 using osuTK;
 using osuTK.Graphics;
 
@@ -31,6 +32,21 @@ namespace osu.Game.Rulesets.Osu.Edit
         private HitObjectGimmickEditorModel model = null!;
 
         private FormCheckBox enableHpGimmick = null!;
+        private FormCheckBox fakeNote = null!;
+        private FormEnumDropdown<FakePunishMode> fakePunishMode = null!;
+        private FormCheckBox fakePlayHitsound = null!;
+        private FormCheckBox fakeRevealEnabled = null!;
+        private FormNumberBox fakeRevealRed = null!;
+        private FormNumberBox fakeRevealGreen = null!;
+        private FormNumberBox fakeRevealBlue = null!;
+        private FormSliderBar<float> fakeRevealStrength = null!;
+        private FormNumberBox fakeRevealLeadInStartMs = null!;
+        private FormNumberBox fakeRevealLeadInLengthMs = null!;
+        private FormNumberBox fakeRevealFadeOutStartMs = null!;
+        private FormNumberBox fakeRevealFadeOutLengthMs = null!;
+
+        private FillFlowContainer fakeNoteFields = null!;
+        private FillFlowContainer fakeRevealFields = null!;
         private FormNumberBox hp300 = null!;
         private FormNumberBox hp100 = null!;
         private FormNumberBox hp50 = null!;
@@ -73,7 +89,7 @@ namespace osu.Game.Rulesets.Osu.Edit
         private OsuSpriteText selectionStatus = null!;
 
         private bool updatingControls;
-        private readonly ScheduledDelegate[] fadeSchedules = new ScheduledDelegate[4];
+        private readonly ScheduledDelegate[] fadeSchedules = new ScheduledDelegate[6];
         private bool selectionUpdateScheduled;
 
         public HitObjectGimmickToolboxGroup()
@@ -100,6 +116,38 @@ namespace osu.Game.Rulesets.Osu.Edit
                         Font = OsuFont.GetFont(size: 12, weight: FontWeight.SemiBold),
                         Colour = Color4.Gray,
                     },
+
+                    fakeNote = new FormCheckBox { Caption = "Fake Note" },
+                    fakeNoteFields = createContainer(
+                        fakePunishMode = new FormEnumDropdown<FakePunishMode>
+                        {
+                            Caption = "Fake Punish Mode",
+                            Current = { Value = FakePunishMode.None },
+                        },
+                        fakePlayHitsound = new FormCheckBox { Caption = "Fake Play Hitsound" },
+                        fakeRevealEnabled = new FormCheckBox { Caption = "Fake Reveal Tint" },
+                        fakeRevealFields = createContainer(
+                            fakeRevealStrength = new FormSliderBar<float>
+                            {
+                                Caption = "Reveal Strength (0-1)",
+                                Current = new BindableFloat
+                                {
+                                    MinValue = 0,
+                                    MaxValue = 1,
+                                    Precision = 0.01f,
+                                    Value = HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_STRENGTH,
+                                },
+                                TransferValueOnCommit = true,
+                                CommitEmptyAsNaN = false,
+                                TabbableContentContainer = this,
+                            },
+                            fakeRevealRed = new FormNumberBox(allowDecimals: true) { Caption = "Reveal Color R (0-1)", TabbableContentContainer = this },
+                            fakeRevealGreen = new FormNumberBox(allowDecimals: true) { Caption = "Reveal Color G (0-1)", TabbableContentContainer = this },
+                            fakeRevealBlue = new FormNumberBox(allowDecimals: true) { Caption = "Reveal Color B (0-1)", TabbableContentContainer = this },
+                            fakeRevealLeadInStartMs = new FormNumberBox(allowDecimals: true) { Caption = "Reveal Lead-In Start (ms)", TabbableContentContainer = this },
+                            fakeRevealLeadInLengthMs = new FormNumberBox(allowDecimals: true) { Caption = "Reveal Lead-In Length (ms)", TabbableContentContainer = this },
+                            fakeRevealFadeOutStartMs = new FormNumberBox(allowDecimals: true) { Caption = "Reveal Fade-Out Start (ms)", TabbableContentContainer = this },
+                            fakeRevealFadeOutLengthMs = new FormNumberBox(allowDecimals: true) { Caption = "Reveal Fade-Out Length (ms)", TabbableContentContainer = this })),
 
                     enableHpGimmick = new FormCheckBox { Caption = "HP Gimmick" },
                     hpFields = createContainer(
@@ -216,6 +264,29 @@ namespace osu.Game.Rulesets.Osu.Edit
         private void bindControlEvents()
         {
             enableHpGimmick.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableHPGimmick = value));
+            fakeNote.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.IsFakeNote = value));
+            fakePunishMode.Current.BindValueChanged(v =>
+            {
+                if (updatingControls)
+                    return;
+
+                if (!model.HasSelection)
+                    return;
+
+                model.SetSelectionFakePunishMode(v.NewValue);
+                scheduleSelectionUpdate();
+            });
+            fakePlayHitsound.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.FakePlayHitsound = value));
+            fakeRevealEnabled.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.FakeRevealEnabled = value));
+            bindSlider(fakeRevealStrength, (s, value) => s.FakeRevealStrength = value, v => Math.Clamp(v, 0f, 1f));
+            bindFloat(fakeRevealRed, (s, value) => s.FakeRevealRed = value, v => Math.Clamp(v, 0f, 1f));
+            bindFloat(fakeRevealGreen, (s, value) => s.FakeRevealGreen = value, v => Math.Clamp(v, 0f, 1f));
+            bindFloat(fakeRevealBlue, (s, value) => s.FakeRevealBlue = value, v => Math.Clamp(v, 0f, 1f));
+            bindFloat(fakeRevealLeadInStartMs, (s, value) => s.FakeRevealLeadInStartMs = value, v => Math.Max(0f, v));
+            bindFloat(fakeRevealLeadInLengthMs, (s, value) => s.FakeRevealLeadInLengthMs = value, v => Math.Max(0f, v));
+            bindFloat(fakeRevealFadeOutStartMs, (s, value) => s.FakeRevealFadeOutStartMs = value, v => Math.Max(0f, v));
+            bindFloat(fakeRevealFadeOutLengthMs, (s, value) => s.FakeRevealFadeOutLengthMs = value, v => Math.Max(0f, v));
+
             enableNoMiss.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableNoMiss = value));
             enableCountLimits.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableCountLimits = value));
             enableGreatOffsetPenalty.Current.BindValueChanged(v => setBool(v.NewValue, (s, value) => s.EnableGreatOffsetPenalty = value));
@@ -280,11 +351,11 @@ namespace osu.Game.Rulesets.Osu.Edit
             bindSlider(sectionStackLeniency, (s, value) => s.SectionStackLeniency = value, v => isUnsafeStackLeniencyOverrideEnabled() ? v : SectionGimmickValueClamper.ClampStackLeniency(v));
             bindSlider(sectionTickRate, (s, value) => s.SectionTickRate = value, v => isUnsafeTickRateOverrideEnabled() ? v : SectionGimmickValueClamper.ClampTickRate(v));
 
-            sectionCircleSize.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
-            sectionApproachRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
-            sectionOverallDifficulty.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
-            sectionStackLeniency.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
-            sectionTickRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults(), true);
+            sectionCircleSize.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
+            sectionApproachRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
+            sectionOverallDifficulty.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
+            sectionStackLeniency.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
+            sectionTickRate.Current.BindValueChanged(_ => updateDifficultyOverrideDefaults());
         }
 
         private void bindSlider(FormSliderBar<float> source, Action<osu.Game.Beatmaps.HitObjectGimmicks.HitObjectGimmickSettings, float> setter, Func<float, float> clamp)
@@ -339,6 +410,9 @@ namespace osu.Game.Rulesets.Osu.Edit
             setEnabledState(true,
                 enableHpGimmick,
                 hp300, hp100, hp50, hpMiss,
+                fakeNote, fakePunishMode, fakePlayHitsound, fakeRevealEnabled, fakeRevealStrength,
+                fakeRevealRed, fakeRevealGreen, fakeRevealBlue,
+                fakeRevealLeadInStartMs, fakeRevealLeadInLengthMs, fakeRevealFadeOutStartMs, fakeRevealFadeOutLengthMs,
                 enableNoMiss,
                 enableCountLimits, max300, max100, max50, maxMiss,
                 enableGreatOffsetPenalty, greatOffsetThreshold, greatOffsetPenaltyHp,
@@ -347,6 +421,8 @@ namespace osu.Game.Rulesets.Osu.Edit
                 forceHidden, forceHardRock, forceFlashlight, flashlightRadius, forceNoApproachCircle);
 
             enableHpGimmick.Current.Value = hasSelection && state.EnableHPGimmick;
+            fakeNote.Current.Value = hasSelection && state.IsFakeNote;
+            fakePunishMode.Current.Value = hasSelection ? state.FakePunishMode : FakePunishMode.None;
             enableNoMiss.Current.Value = hasSelection && state.EnableNoMiss;
             enableCountLimits.Current.Value = hasSelection && state.EnableCountLimits;
             enableGreatOffsetPenalty.Current.Value = hasSelection && state.EnableGreatOffsetPenalty;
@@ -375,6 +451,17 @@ namespace osu.Game.Rulesets.Osu.Edit
 
             greatOffsetThreshold.Current.Value = formatFloat(representative?.GreatOffsetThresholdMs ?? -1);
             greatOffsetPenaltyHp.Current.Value = formatFloat(representative?.GreatOffsetPenaltyHP ?? float.NaN);
+
+            fakePlayHitsound.Current.Value = hasSelection && (representative?.FakePlayHitsound ?? false);
+            fakeRevealEnabled.Current.Value = !hasSelection || (representative?.FakeRevealEnabled ?? true);
+            fakeRevealStrength.Current.Value = hasSelection ? (representative?.FakeRevealStrength ?? HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_STRENGTH) : HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_STRENGTH;
+            fakeRevealRed.Current.Value = formatFloat(hasSelection ? (representative?.FakeRevealRed ?? 1f) : 1f);
+            fakeRevealGreen.Current.Value = formatFloat(hasSelection ? (representative?.FakeRevealGreen ?? 0.3019608f) : 0.3019608f);
+            fakeRevealBlue.Current.Value = formatFloat(hasSelection ? (representative?.FakeRevealBlue ?? 0.3019608f) : 0.3019608f);
+            fakeRevealLeadInStartMs.Current.Value = formatFloat(hasSelection ? (representative?.FakeRevealLeadInStartMs ?? HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_START_MS) : HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_START_MS);
+            fakeRevealLeadInLengthMs.Current.Value = formatFloat(hasSelection ? (representative?.FakeRevealLeadInLengthMs ?? HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_LENGTH_MS) : HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_LENGTH_MS);
+            fakeRevealFadeOutStartMs.Current.Value = formatFloat(hasSelection ? (representative?.FakeRevealFadeOutStartMs ?? HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_START_MS) : HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_START_MS);
+            fakeRevealFadeOutLengthMs.Current.Value = formatFloat(hasSelection ? (representative?.FakeRevealFadeOutLengthMs ?? HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_LENGTH_MS) : HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_LENGTH_MS);
 
             sectionCircleSize.Current.Value = float.IsNaN(representative?.SectionCircleSize ?? float.NaN) ? 0f : representative!.SectionCircleSize;
             sectionApproachRate.Current.Value = float.IsNaN(representative?.SectionApproachRate ?? float.NaN) ? 0f : representative!.SectionApproachRate;
@@ -410,6 +497,12 @@ namespace osu.Game.Rulesets.Osu.Edit
             scheduleFade(hpFields, enableHpGimmick.Current.Value, 0);
             hpFields.AlwaysPresent = enableHpGimmick.Current.Value;
 
+            scheduleFade(fakeNoteFields, fakeNote.Current.Value, 4);
+            fakeNoteFields.AlwaysPresent = fakeNote.Current.Value;
+
+            scheduleFade(fakeRevealFields, fakeNote.Current.Value && fakeRevealEnabled.Current.Value, 5);
+            fakeRevealFields.AlwaysPresent = fakeNote.Current.Value && fakeRevealEnabled.Current.Value;
+
             scheduleFade(countLimitFields, enableCountLimits.Current.Value, 1);
             countLimitFields.AlwaysPresent = enableCountLimits.Current.Value;
 
@@ -425,12 +518,24 @@ namespace osu.Game.Rulesets.Osu.Edit
                 setEnabledState(enabled,
                     enableHpGimmick,
                     hp300, hp100, hp50, hpMiss,
+                    fakeNote, fakePunishMode, fakePlayHitsound, fakeRevealEnabled, fakeRevealStrength,
+                    fakeRevealRed, fakeRevealGreen, fakeRevealBlue,
+                    fakeRevealLeadInStartMs, fakeRevealLeadInLengthMs, fakeRevealFadeOutStartMs, fakeRevealFadeOutLengthMs,
                     enableNoMiss,
                     enableCountLimits, max300, max100, max50, maxMiss,
                     enableGreatOffsetPenalty, greatOffsetThreshold, greatOffsetPenaltyHp,
                     enableDifficultyOverrides, allowUnsafeDifficultyOverrideValues, sectionCircleSize, sectionApproachRate, sectionOverallDifficulty,
                     allowUnsafeStackLeniencyOverrideValues, sectionStackLeniency, allowUnsafeTickRateOverrideValues, sectionTickRate,
                     forceHidden, forceHardRock, forceFlashlight, flashlightRadius, forceNoApproachCircle);
+
+                setEnabledState(enabled && fakeNote.Current.Value,
+                    fakePunishMode, fakePlayHitsound, fakeRevealEnabled,
+                    fakeRevealStrength, fakeRevealRed, fakeRevealGreen, fakeRevealBlue,
+                    fakeRevealLeadInStartMs, fakeRevealLeadInLengthMs, fakeRevealFadeOutStartMs, fakeRevealFadeOutLengthMs);
+
+                setEnabledState(enabled && fakeNote.Current.Value && fakeRevealEnabled.Current.Value,
+                    fakeRevealStrength, fakeRevealRed, fakeRevealGreen, fakeRevealBlue,
+                    fakeRevealLeadInStartMs, fakeRevealLeadInLengthMs, fakeRevealFadeOutStartMs, fakeRevealFadeOutLengthMs);
             }
 
             updatingControls = false;
@@ -584,6 +689,14 @@ namespace osu.Game.Rulesets.Osu.Edit
                         s.Current.Disabled = !enabled;
                         break;
 
+                    case FormSliderBar<double> s:
+                        s.Current.Disabled = !enabled;
+                        break;
+
+                    case FormEnumDropdown<FakePunishMode> d:
+                        d.Current.Disabled = !enabled;
+                        break;
+
                     case FormTextBox t:
                         t.ReadOnly = !enabled;
                         break;
@@ -626,11 +739,26 @@ namespace osu.Game.Rulesets.Osu.Edit
                 || sectionTickRate.Current.Disabled)
                 return;
 
-            sectionCircleSize.Current.Default = editorBeatmap.Difficulty.CircleSize;
-            sectionApproachRate.Current.Default = editorBeatmap.Difficulty.ApproachRate;
-            sectionOverallDifficulty.Current.Default = editorBeatmap.Difficulty.OverallDifficulty;
-            sectionStackLeniency.Current.Default = editorBeatmap.StackLeniency;
-            sectionTickRate.Current.Default = editorBeatmap.Difficulty.SliderTickRate;
+            trySetDefault(sectionCircleSize.Current, editorBeatmap.Difficulty.CircleSize);
+            trySetDefault(sectionApproachRate.Current, editorBeatmap.Difficulty.ApproachRate);
+            trySetDefault(sectionOverallDifficulty.Current, editorBeatmap.Difficulty.OverallDifficulty);
+            trySetDefault(sectionStackLeniency.Current, editorBeatmap.StackLeniency);
+            trySetDefault(sectionTickRate.Current, editorBeatmap.Difficulty.SliderTickRate);
+
+            static void trySetDefault<T>(Bindable<T> bindable, T value)
+            {
+                if (bindable.Disabled)
+                    return;
+
+                try
+                {
+                    bindable.Default = value;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Can happen transiently during control state updates.
+                }
+            }
         }
 
         private void setDefaultSelectionDifficultyOverrideValues()

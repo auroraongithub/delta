@@ -4,7 +4,11 @@
 #nullable disable
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Sample;
@@ -16,7 +20,9 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.IO.Stores;
 using osu.Framework.Input.Events;
+using osu.Framework.Platform;
 using osu.Framework.Utils;
 using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Graphics.Backgrounds;
@@ -185,21 +191,21 @@ namespace osu.Game.Screens.Menu
                                                                     Origin = Anchor.Centre,
                                                                     Children = new Drawable[]
                                                                     {
-                                                                        new Box
-                                                                        {
-                                                                            RelativeSizeAxes = Axes.Both,
-                                                                            Colour = ColourInfo.GradientVertical(Color4Extensions.FromHex(@"acf176"), Color4Extensions.FromHex(@"7fc45a")),
-                                                                        },
-                                                                        triangles = new TrianglesV2
-                                                                        {
+                                                                         new Box
+                                                                         {
+                                                                             RelativeSizeAxes = Axes.Both,
+                                                                             Colour = ColourInfo.GradientVertical(Color4Extensions.FromHex(@"c53a42"), Color4Extensions.FromHex(@"a5252c")),
+                                                                         },
+                                                                         triangles = new TrianglesV2
+                                                                         {
                                                                             Anchor = Anchor.Centre,
                                                                             Origin = Anchor.Centre,
-                                                                            Thickness = 0.009f,
-                                                                            ScaleAdjust = 3,
-                                                                            SpawnRatio = 1.4f,
-                                                                            Colour = ColourInfo.GradientVertical(Color4Extensions.FromHex(@"acf176"), Color4Extensions.FromHex(@"6fb04a")),
-                                                                            RelativeSizeAxes = Axes.Both,
-                                                                        },
+                                                                             Thickness = 0.009f,
+                                                                             ScaleAdjust = 3,
+                                                                             SpawnRatio = 1.4f,
+                                                                             Colour = ColourInfo.GradientVertical(Color4Extensions.FromHex(@"bf333b"), Color4Extensions.FromHex(@"961e25")),
+                                                                             RelativeSizeAxes = Axes.Both,
+                                                                         },
                                                                     }
                                                                 },
                                                                 flashLayer = new Box
@@ -275,15 +281,104 @@ namespace osu.Game.Screens.Menu
         }
 
         [BackgroundDependencyLoader]
-        private void load(TextureStore textures, AudioManager audio)
+        private void load(TextureStore textures, AudioManager audio, Storage storage)
         {
             sampleClick = audio.Samples.Get(@"Menu/osu-logo-select");
 
             SampleBeat = audio.Samples.Get(@"Menu/osu-logo-heartbeat");
             SampleDownbeat = audio.Samples.Get(@"Menu/osu-logo-downbeat");
 
-            logo.Texture = textures.Get(@"Menu/logo");
-            ripple.Texture = textures.Get(@"Menu/logo");
+            var logoTexture = tryGetCustomLogoTexture(textures, storage) ?? textures.Get(@"Menu/logo");
+
+            logo.Texture = logoTexture;
+            ripple.Texture = logoTexture;
+        }
+
+        private static Texture tryGetCustomLogoTexture(TextureStore textures, Storage storage)
+        {
+            const string custom_logo_filename = "deltafinal3.png";
+            const string custom_texture_lookup = "deltafinal3";
+
+            string localLogoPath = findPathInCurrentOrParents(custom_logo_filename);
+
+            if (localLogoPath != null)
+            {
+                byte[] imageBytes = File.ReadAllBytes(localLogoPath);
+                textures.AddTextureSource(new TextureLoaderStore(new SingleLogoResourceStore(custom_texture_lookup, imageBytes)));
+                return textures.Get(custom_texture_lookup);
+            }
+
+            var filesStorage = storage.GetStorageForDirectory("files");
+
+            if (!filesStorage.Exists(custom_logo_filename))
+                return null;
+
+            textures.AddTextureSource(new TextureLoaderStore(new StorageBackedResourceStore(filesStorage)));
+            return textures.Get("deltafinal3");
+        }
+
+        private static string findPathInCurrentOrParents(string filename)
+        {
+            string current = Environment.CurrentDirectory;
+
+            for (int i = 0; i < 10; i++)
+            {
+                if (string.IsNullOrEmpty(current))
+                    break;
+
+                string candidate = Path.Combine(current, filename);
+
+                if (File.Exists(candidate))
+                    return candidate;
+
+                var parent = Directory.GetParent(current);
+
+                if (parent == null || parent.FullName == current)
+                    break;
+
+                current = parent.FullName;
+            }
+
+            return null;
+        }
+
+        private sealed class SingleLogoResourceStore : IResourceStore<byte[]>
+        {
+            private readonly string textureLookup;
+            private readonly byte[] imageBytes;
+
+            public SingleLogoResourceStore(string textureLookup, byte[] imageBytes)
+            {
+                this.textureLookup = textureLookup;
+                this.imageBytes = imageBytes;
+            }
+
+            public byte[] Get(string name)
+                => accepts(name) ? imageBytes : null;
+
+            public Task<byte[]> GetAsync(string name, CancellationToken cancellationToken = default)
+                => Task.FromResult(Get(name));
+
+            public Stream GetStream(string name)
+                => accepts(name) ? new MemoryStream(imageBytes, writable: false) : null;
+
+            public IEnumerable<string> GetAvailableResources() => new[]
+            {
+                textureLookup,
+                textureLookup + ".png",
+                textureLookup + "@2x",
+                textureLookup + "@2x.png",
+            };
+
+            private bool accepts(string name)
+                => string.Equals(name, textureLookup, StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(name, textureLookup + ".png", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(name, textureLookup + "@2x", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(name, textureLookup + "@2x.png", StringComparison.OrdinalIgnoreCase);
+
+            public void Dispose()
+            {
+            }
         }
 
         private int lastBeatIndex;

@@ -65,6 +65,15 @@ namespace osu.Game.Beatmaps.SectionGimmicks
 
         public static void ClampHitObjectSettingsInPlace(HitObjectGimmickSettings settings)
         {
+            settings.FakeRevealStrength = clampMinMax(settings.FakeRevealStrength, 0, 1);
+            settings.FakeRevealLeadInStartMs = clampMin(settings.FakeRevealLeadInStartMs, 0);
+            settings.FakeRevealLeadInLengthMs = clampMin(settings.FakeRevealLeadInLengthMs, 0);
+            settings.FakeRevealFadeOutStartMs = clampMin(settings.FakeRevealFadeOutStartMs, 0);
+            settings.FakeRevealFadeOutLengthMs = clampMin(settings.FakeRevealFadeOutLengthMs, 0);
+            settings.FakeRevealRed = clampMinMax(settings.FakeRevealRed, 0, 1);
+            settings.FakeRevealGreen = clampMinMax(settings.FakeRevealGreen, 0, 1);
+            settings.FakeRevealBlue = clampMinMax(settings.FakeRevealBlue, 0, 1);
+
             settings.Max300s = clampCountLimit(settings.Max300s);
             settings.Max100s = clampCountLimit(settings.Max100s);
             settings.Max50s = clampCountLimit(settings.Max50s);

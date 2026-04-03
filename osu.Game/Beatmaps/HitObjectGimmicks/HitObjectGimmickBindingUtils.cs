@@ -251,6 +251,19 @@ namespace osu.Game.Beatmaps.HitObjectGimmicks
         public static HitObjectGimmickSettings CloneSettings(HitObjectGimmickSettings source)
             => new HitObjectGimmickSettings
             {
+                IsFakeNote = source.IsFakeNote,
+                FakePunishMode = source.FakePunishMode,
+                FakePlayHitsound = source.FakePlayHitsound,
+                FakeRevealEnabled = source.FakeRevealEnabled,
+                FakeRevealRed = source.FakeRevealRed,
+                FakeRevealGreen = source.FakeRevealGreen,
+                FakeRevealBlue = source.FakeRevealBlue,
+                FakeRevealStrength = source.FakeRevealStrength,
+                FakeRevealLeadInStartMs = source.FakeRevealLeadInStartMs,
+                FakeRevealLeadInLengthMs = source.FakeRevealLeadInLengthMs,
+                FakeRevealFadeOutStartMs = source.FakeRevealFadeOutStartMs,
+                FakeRevealFadeOutLengthMs = source.FakeRevealFadeOutLengthMs,
+
                 EnableHPGimmick = source.EnableHPGimmick,
                 EnableNoMiss = source.EnableNoMiss,
                 EnableCountLimits = source.EnableCountLimits,

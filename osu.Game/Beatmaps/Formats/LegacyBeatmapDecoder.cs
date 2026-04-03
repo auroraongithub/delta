@@ -809,6 +809,45 @@ namespace osu.Game.Beatmaps.Formats
                         case "EnableHPGimmick":
                             entry.Settings.EnableHPGimmick = parseBool(value);
                             break;
+                        case "IsFakeNote":
+                            entry.Settings.IsFakeNote = parseBool(value);
+                            break;
+                        case "FakePunishMode":
+                            if (!Enum.TryParse(value, true, out FakePunishMode fakePunishMode))
+                                fakePunishMode = FakePunishMode.None;
+
+                            entry.Settings.FakePunishMode = fakePunishMode;
+                            break;
+                        case "FakePlayHitsound":
+                            entry.Settings.FakePlayHitsound = parseBool(value);
+                            break;
+                        case "FakeRevealEnabled":
+                            entry.Settings.FakeRevealEnabled = parseBool(value);
+                            break;
+                        case "FakeRevealRed":
+                            entry.Settings.FakeRevealRed = Parsing.ParseFloat(value);
+                            break;
+                        case "FakeRevealGreen":
+                            entry.Settings.FakeRevealGreen = Parsing.ParseFloat(value);
+                            break;
+                        case "FakeRevealBlue":
+                            entry.Settings.FakeRevealBlue = Parsing.ParseFloat(value);
+                            break;
+                        case "FakeRevealStrength":
+                            entry.Settings.FakeRevealStrength = Parsing.ParseFloat(value);
+                            break;
+                        case "FakeRevealLeadInStartMs":
+                            entry.Settings.FakeRevealLeadInStartMs = Parsing.ParseFloat(value);
+                            break;
+                        case "FakeRevealLeadInLengthMs":
+                            entry.Settings.FakeRevealLeadInLengthMs = Parsing.ParseFloat(value);
+                            break;
+                        case "FakeRevealFadeOutStartMs":
+                            entry.Settings.FakeRevealFadeOutStartMs = Parsing.ParseFloat(value);
+                            break;
+                        case "FakeRevealFadeOutLengthMs":
+                            entry.Settings.FakeRevealFadeOutLengthMs = Parsing.ParseFloat(value);
+                            break;
                         case "ObjectId":
                             if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long objectId))
                                 entry.ObjectId = objectId;

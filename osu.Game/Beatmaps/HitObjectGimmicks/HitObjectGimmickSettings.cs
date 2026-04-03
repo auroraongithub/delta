@@ -3,8 +3,33 @@
 
 namespace osu.Game.Beatmaps.HitObjectGimmicks
 {
+    public enum FakePunishMode
+    {
+        None,
+        Miss,
+    }
+
     public class HitObjectGimmickSettings
     {
+        public const float DEFAULT_FAKE_REVEAL_STRENGTH = 0.55f;
+        public const float DEFAULT_FAKE_REVEAL_LEAD_IN_START_MS = 900;
+        public const float DEFAULT_FAKE_REVEAL_LEAD_IN_LENGTH_MS = 200;
+        public const float DEFAULT_FAKE_REVEAL_FADE_OUT_START_MS = 300;
+        public const float DEFAULT_FAKE_REVEAL_FADE_OUT_LENGTH_MS = 250;
+
+        public bool IsFakeNote { get; set; }
+        public FakePunishMode FakePunishMode { get; set; } = FakePunishMode.None;
+        public bool FakePlayHitsound { get; set; }
+        public bool FakeRevealEnabled { get; set; } = true;
+        public float FakeRevealRed { get; set; } = 1f;
+        public float FakeRevealGreen { get; set; } = 0.3019608f;
+        public float FakeRevealBlue { get; set; } = 0.3019608f;
+        public float FakeRevealStrength { get; set; } = DEFAULT_FAKE_REVEAL_STRENGTH;
+        public float FakeRevealLeadInStartMs { get; set; } = DEFAULT_FAKE_REVEAL_LEAD_IN_START_MS;
+        public float FakeRevealLeadInLengthMs { get; set; } = DEFAULT_FAKE_REVEAL_LEAD_IN_LENGTH_MS;
+        public float FakeRevealFadeOutStartMs { get; set; } = DEFAULT_FAKE_REVEAL_FADE_OUT_START_MS;
+        public float FakeRevealFadeOutLengthMs { get; set; } = DEFAULT_FAKE_REVEAL_FADE_OUT_LENGTH_MS;
+
         public bool EnableHPGimmick { get; set; }
         public bool EnableNoMiss { get; set; }
         public bool EnableCountLimits { get; set; }

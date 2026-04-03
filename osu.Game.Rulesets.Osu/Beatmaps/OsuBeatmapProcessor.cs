@@ -52,6 +52,7 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
             base.PostProcess();
 
             HitObjectGimmickBindingUtils.SynchroniseEntriesWithHitObjects(Beatmap);
+            convertFakeNotes(Beatmap);
 
             applySectionDifficultyOverrides(Beatmap);
             applySectionForcedMods(Beatmap);
@@ -134,6 +135,65 @@ namespace osu.Game.Rulesets.Osu.Beatmaps
                 // Force Flashlight is visual effect handled by SectionGimmickFlashlightOverlay.
             }
 
+        }
+
+        private static void convertFakeNotes(IBeatmap beatmap)
+        {
+            var objectSettingsLookup = createObjectSettingsLookup(beatmap.HitObjectGimmicks);
+            var objectSettingsById = createObjectSettingsLookupByObjectId(beatmap.HitObjectGimmicks);
+
+            if (beatmap is not Beatmap<OsuHitObject> osuBeatmap)
+                return;
+
+            var hitObjects = osuBeatmap.HitObjects;
+
+            for (int i = 0; i < hitObjects.Count; i++)
+            {
+                if (hitObjects[i] is not OsuHitObject osuObject)
+                    continue;
+
+                var objectSettings = getObjectSettings(osuObject, objectSettingsLookup)
+                                     ?? getObjectSettings(osuObject, objectSettingsById, objectSettingsLookup);
+
+                if (objectSettings?.IsFakeNote != true)
+                    continue;
+
+                switch (osuObject)
+                {
+                    case HitCircle hitCircle when osuObject is not FakeHitCircle:
+                    {
+                        var fakeCircle = new FakeHitCircle
+                        {
+                            FakePunishMode = objectSettings.FakePunishMode,
+                            FakePlayHitsound = objectSettings.FakePlayHitsound,
+                            FakeRevealEnabled = objectSettings.FakeRevealEnabled,
+                            FakeRevealRed = objectSettings.FakeRevealRed,
+                            FakeRevealGreen = objectSettings.FakeRevealGreen,
+                            FakeRevealBlue = objectSettings.FakeRevealBlue,
+                            FakeRevealStrength = objectSettings.FakeRevealStrength,
+                            FakeRevealLeadInStartMs = objectSettings.FakeRevealLeadInStartMs,
+                            FakeRevealLeadInLengthMs = objectSettings.FakeRevealLeadInLengthMs,
+                            FakeRevealFadeOutStartMs = objectSettings.FakeRevealFadeOutStartMs,
+                            FakeRevealFadeOutLengthMs = objectSettings.FakeRevealFadeOutLengthMs,
+                        };
+
+                        copyCommonOsuValues(hitCircle, fakeCircle);
+                        hitObjects[i] = fakeCircle;
+                        break;
+                    }
+
+                }
+            }
+        }
+
+        private static void copyCommonOsuValues(OsuHitObject source, OsuHitObject target)
+        {
+            target.StartTime = source.StartTime;
+            target.Position = source.Position;
+            target.NewCombo = source.NewCombo;
+            target.ComboOffset = source.ComboOffset;
+            target.GimmickObjectId = source.GimmickObjectId;
+            target.Samples = source.Samples.ToList();
         }
 
         private static Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> createObjectSettingsLookup(BeatmapHitObjectGimmicks gimmicks)

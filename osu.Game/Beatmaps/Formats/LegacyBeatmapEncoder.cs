@@ -546,6 +546,19 @@ namespace osu.Game.Beatmaps.Formats
 
         private static IEnumerable<string> serialiseHitObjectSettings(HitObjectGimmickSettings settings)
         {
+            if (settings.IsFakeNote) yield return "IsFakeNote=True";
+            if (settings.FakePunishMode != FakePunishMode.None) yield return $"FakePunishMode={settings.FakePunishMode}";
+            if (settings.FakePlayHitsound) yield return "FakePlayHitsound=True";
+            if (!settings.FakeRevealEnabled) yield return "FakeRevealEnabled=False";
+            if (Math.Abs(settings.FakeRevealRed - 1f) > 0.0001f) yield return $"FakeRevealRed={settings.FakeRevealRed.ToString(CultureInfo.InvariantCulture)}";
+            if (Math.Abs(settings.FakeRevealGreen - 0.3019608f) > 0.0001f) yield return $"FakeRevealGreen={settings.FakeRevealGreen.ToString(CultureInfo.InvariantCulture)}";
+            if (Math.Abs(settings.FakeRevealBlue - 0.3019608f) > 0.0001f) yield return $"FakeRevealBlue={settings.FakeRevealBlue.ToString(CultureInfo.InvariantCulture)}";
+            if (Math.Abs(settings.FakeRevealStrength - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_STRENGTH) > 0.0001f) yield return $"FakeRevealStrength={settings.FakeRevealStrength.ToString(CultureInfo.InvariantCulture)}";
+            if (Math.Abs(settings.FakeRevealLeadInStartMs - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_START_MS) > 0.0001f) yield return $"FakeRevealLeadInStartMs={settings.FakeRevealLeadInStartMs.ToString(CultureInfo.InvariantCulture)}";
+            if (Math.Abs(settings.FakeRevealLeadInLengthMs - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_LENGTH_MS) > 0.0001f) yield return $"FakeRevealLeadInLengthMs={settings.FakeRevealLeadInLengthMs.ToString(CultureInfo.InvariantCulture)}";
+            if (Math.Abs(settings.FakeRevealFadeOutStartMs - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_START_MS) > 0.0001f) yield return $"FakeRevealFadeOutStartMs={settings.FakeRevealFadeOutStartMs.ToString(CultureInfo.InvariantCulture)}";
+            if (Math.Abs(settings.FakeRevealFadeOutLengthMs - HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_LENGTH_MS) > 0.0001f) yield return $"FakeRevealFadeOutLengthMs={settings.FakeRevealFadeOutLengthMs.ToString(CultureInfo.InvariantCulture)}";
+
             if (settings.EnableHPGimmick) yield return "EnableHPGimmick=True";
             if (settings.EnableNoMiss) yield return "EnableNoMiss=True";
             if (settings.EnableCountLimits) yield return "EnableCountLimits=True";

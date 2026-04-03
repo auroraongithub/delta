@@ -1,0 +1,22 @@
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// See the LICENCE file in the repository root for full licence text.
+
+using osu.Game.Beatmaps.HitObjectGimmicks;
+
+namespace osu.Game.Rulesets.Osu.Objects
+{
+    public class FakeSlider : Slider
+    {
+        public FakePunishMode FakePunishMode { get; set; }
+        public bool FakePlayHitsound { get; set; }
+        public bool FakeRevealEnabled { get; set; } = true;
+        public float FakeRevealRed { get; set; } = 1f;
+        public float FakeRevealGreen { get; set; } = 0.3019608f;
+        public float FakeRevealBlue { get; set; } = 0.3019608f;
+        public float FakeRevealStrength { get; set; } = HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_STRENGTH;
+        public float FakeRevealLeadInStartMs { get; set; } = HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_START_MS;
+        public float FakeRevealLeadInLengthMs { get; set; } = HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_LEAD_IN_LENGTH_MS;
+        public float FakeRevealFadeOutStartMs { get; set; } = HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_START_MS;
+        public float FakeRevealFadeOutLengthMs { get; set; } = HitObjectGimmickSettings.DEFAULT_FAKE_REVEAL_FADE_OUT_LENGTH_MS;
+    }
+}
