@@ -46,9 +46,6 @@ namespace osu.Game.Rulesets.Osu.Scoring
         {
             base.Update();
 
-            if (evaluateActiveSectionAccuracyRequirementIfNeeded(Time.Current))
-                return;
-
             var section = resolveSection(Time.Current);
             if (section == null)
                 return;
@@ -89,7 +86,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
                 }
 
                 if (settings.EnableAccuracyRequirement)
-                    updateAccuracyRequirementTracking(settings, result);
+                    updateAccuracyRequirementTracking(result);
 
                 if (settings.EnableNoMissedSliderEnd &&
                     (result.HitObject is SliderEndCircle || result.HitObject is SliderRepeat || result.HitObject is SliderTick) &&
@@ -331,33 +328,16 @@ namespace osu.Game.Rulesets.Osu.Scoring
             return result;
         }
 
-        private void updateAccuracyRequirementTracking(SectionGimmickSettings settings, JudgementResult result)
+        private void updateAccuracyRequirementTracking(JudgementResult result)
         {
             if (result.Type == HitResult.None)
                 return;
 
-            var type = result.Type;
+            if (affectsSectionAccuracyDenominator(result))
+                activeSectionAccuracyMaxBaseScore += getSectionAccuracyMaxBaseScoreForResult(result);
 
-            if (type.AffectsAccuracy())
-            {
-                activeSectionAccuracyBaseScore += scoreBase(type);
-                activeSectionAccuracyMaxBaseScore += scoreBase(HitResult.Great);
-                return;
-            }
-
-            if (settings.Max300sAffectsSliderEndsAndTicks && type is HitResult.LargeTickHit or HitResult.SmallTickHit or HitResult.SliderTailHit)
-            {
-                activeSectionAccuracyBaseScore += scoreBase(HitResult.Great);
-                activeSectionAccuracyMaxBaseScore += scoreBase(HitResult.Great);
-            }
-            else if (settings.MaxMissesAffectsSliderEndAndTickMisses && type is HitResult.LargeTickMiss or HitResult.SmallTickMiss)
-            {
-                activeSectionAccuracyMaxBaseScore += scoreBase(HitResult.Great);
-            }
-            else if (settings.MaxMissesAffectsSliderEndAndTickMisses && type == HitResult.IgnoreMiss && result.HitObject is SliderEndCircle or SliderRepeat)
-            {
-                activeSectionAccuracyMaxBaseScore += scoreBase(HitResult.Great);
-            }
+            if (result.Type.AffectsAccuracy())
+                activeSectionAccuracyBaseScore += getSectionBaseScoreForResult(result.Type);
         }
 
         private static bool hasSectionEnded(SectionGimmickSection section, double hitObjectTime)
@@ -383,7 +363,7 @@ namespace osu.Game.Rulesets.Osu.Scoring
                 ? activeSectionAccuracyBaseScore / activeSectionAccuracyMaxBaseScore
                 : 1;
 
-            if (currentSectionAccuracy + 0.0000001 < activeSection.Settings.RequiredAccuracy)
+            if (!meetsRequiredAccuracy(currentSectionAccuracy, activeSection.Settings.RequiredAccuracy))
             {
                 TriggerFailure();
                 return true;
@@ -392,13 +372,43 @@ namespace osu.Game.Rulesets.Osu.Scoring
             return false;
         }
 
-        private static double scoreBase(HitResult result)
+        private static bool affectsSectionAccuracyDenominator(JudgementResult result)
+            => result.Judgement.MaxResult.AffectsAccuracy()
+               || (result.HitObject is FakeHitCircle or FakeSlider
+                   && result.Type == HitResult.Miss
+                   && result.Judgement.MaxResult == HitResult.IgnoreHit);
+
+        private static int getSectionAccuracyMaxBaseScoreForResult(JudgementResult result)
+        {
+            if (result.HitObject is FakeHitCircle or FakeSlider
+                && result.Type == HitResult.Miss
+                && result.Judgement.MaxResult == HitResult.IgnoreHit)
+            {
+                return getSectionBaseScoreForResult(HitResult.Great);
+            }
+
+            return getSectionBaseScoreForResult(result.Judgement.MaxResult);
+        }
+
+        private static int getSectionBaseScoreForResult(HitResult result)
             => result switch
             {
+                HitResult.SmallTickHit => 10,
+                HitResult.LargeTickHit => 30,
+                HitResult.SliderTailHit => 150,
                 HitResult.Great => 300,
                 HitResult.Ok => 100,
                 HitResult.Meh => 50,
+                HitResult.Good => 200,
+                HitResult.Perfect => 300,
                 _ => 0,
             };
+
+        private static bool meetsRequiredAccuracy(double currentAccuracyFraction, float requiredAccuracyFraction)
+        {
+            double currentPercent = Math.Round(Math.Clamp(currentAccuracyFraction, 0, 1) * 100, 2, MidpointRounding.AwayFromZero);
+            double requiredPercent = Math.Round(Math.Clamp(requiredAccuracyFraction, 0, 1) * 100, 2, MidpointRounding.AwayFromZero);
+            return currentPercent + 0.0000001 >= requiredPercent;
+        }
     }
 }

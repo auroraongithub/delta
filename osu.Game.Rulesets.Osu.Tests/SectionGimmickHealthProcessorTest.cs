@@ -269,6 +269,39 @@ namespace osu.Game.Rulesets.Osu.Tests
             Assert.That(hp.HasFailed, Is.True, "Should fail on the first hit processed after the section end with insufficient section accuracy.");
         }
 
+        [Test]
+        public void TestAccuracyRequirementEqualBoundaryPassesAtTwoDecimalPrecision()
+        {
+            var hit1 = new HitCircle { StartTime = 1000 };
+            var hit2 = new HitCircle { StartTime = 1400 };
+            var hitAfterSection = new HitCircle { StartTime = 2500 };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(hit1);
+            beatmap.HitObjects.Add(hit2);
+            beatmap.HitObjects.Add(hitAfterSection);
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableAccuracyRequirement = true,
+                    RequiredAccuracy = 0.6667f, // 66.67%
+                }
+            });
+
+            var hp = new SectionGimmickHealthProcessor(0);
+            hp.ApplyBeatmap(beatmap);
+
+            hp.ApplyResult(new OsuJudgementResult(hit1, hit1.CreateJudgement()) { Type = HitResult.Great });
+            hp.ApplyResult(new OsuJudgementResult(hit2, hit2.CreateJudgement()) { Type = HitResult.Ok });
+            hp.ApplyResult(new OsuJudgementResult(hitAfterSection, hitAfterSection.CreateJudgement()) { Type = HitResult.Great });
+
+            Assert.That(hp.HasFailed, Is.False, "Accuracy at the two-decimal boundary should count as pass (>= required). ");
+        }
+
         private static OsuJudgementResult createResultWithOffset(HitCircle hit, HitResult type, double offsetMs)
         {
             var result = new OsuJudgementResult(hit, hit.CreateJudgement())

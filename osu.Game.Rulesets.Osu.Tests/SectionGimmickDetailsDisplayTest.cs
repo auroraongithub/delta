@@ -170,6 +170,25 @@ namespace osu.Game.Rulesets.Osu.Tests
             Assert.That(label, Does.Contain("TC"));
         }
 
+        [Test]
+        public void TestBuildDetailsLabelShowsAccuracyRequirementPercent()
+        {
+            var section = new SectionGimmickSection
+            {
+                Id = 8,
+                StartTime = 0,
+                EndTime = 1000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableAccuracyRequirement = true,
+                    RequiredAccuracy = 0.9753f,
+                }
+            };
+
+            string label = invokeBuildLabel(section, false);
+            Assert.That(label, Does.Contain("ReqAcc: 97.53%"));
+        }
+
         private static string invokeBuildLabel(SectionGimmickSection section, bool multiline, IBeatmapDifficultyInfo? difficulty = null)
         {
             var method = typeof(SectionGimmickDetailsDisplay).GetMethod("BuildDetailsLabelForTest", BindingFlags.NonPublic | BindingFlags.Static);

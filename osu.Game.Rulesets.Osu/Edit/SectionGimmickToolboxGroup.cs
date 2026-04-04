@@ -442,7 +442,7 @@ namespace osu.Game.Rulesets.Osu.Edit
                             },
                             requiredAccuracy = new FormNumberBox(allowDecimals: true)
                             {
-                                Caption = "Required accuracy (0-1)",
+                                Caption = "Required accuracy (0.00-100.00%)",
                                 TabbableContentContainer = this,
                             },
 
@@ -1181,7 +1181,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
             enableNoMiss.Current.BindValueChanged(v => mutateSetting(s => s.EnableNoMiss = v.NewValue));
             enableAccuracyRequirement.Current.BindValueChanged(v => mutateSetting(s => s.EnableAccuracyRequirement = v.NewValue));
-            bindFloatSetting(requiredAccuracy, (s, v) => s.RequiredAccuracy = v, v => Math.Clamp(v, 0f, 1f));
+            bindAccuracyPercentageSetting(requiredAccuracy, (s, v) => s.RequiredAccuracy = v);
 
             enableCountLimits.Current.BindValueChanged(v => mutateSetting(s => s.EnableCountLimits = v.NewValue));
             bindIntSetting(max300s, (s, v) => s.Max300s = v, v => Math.Max(-1, v));
@@ -1401,7 +1401,7 @@ namespace osu.Game.Rulesets.Osu.Edit
 
                 enableNoMiss.Current.Value = settings.EnableNoMiss;
                 enableAccuracyRequirement.Current.Value = settings.EnableAccuracyRequirement;
-                requiredAccuracy.Current.Value = formatFloat(settings.RequiredAccuracy);
+                requiredAccuracy.Current.Value = formatAccuracyPercent(settings.RequiredAccuracy);
 
                 enableCountLimits.Current.Value = settings.EnableCountLimits;
                 max300s.Current.Value = settings.Max300s.ToString(CultureInfo.InvariantCulture);
@@ -1656,6 +1656,9 @@ namespace osu.Game.Rulesets.Osu.Edit
         private void bindFloatSetting(FormNumberBox box, Action<SectionGimmickSettings, float> mutation, Func<float, float> clamp)
             => box.OnCommit += (_, _) => updateClampedFloatSetting(box, mutation, clamp);
 
+        private void bindAccuracyPercentageSetting(FormNumberBox box, Action<SectionGimmickSettings, float> mutation)
+            => box.OnCommit += (_, _) => updateAccuracyPercentageSetting(box, mutation);
+
         private void bindSliderSetting(FormSliderBar<float> slider, Action<SectionGimmickSettings, float> mutation, Func<float, float> clamp)
             => slider.Current.BindValueChanged(v => updateClampedSliderSetting(slider, mutation, v.NewValue, clamp));
 
@@ -1747,6 +1750,24 @@ namespace osu.Game.Rulesets.Osu.Edit
             mutateSetting(s => mutation(s, clamped));
         }
 
+        private void updateAccuracyPercentageSetting(FormNumberBox box, Action<SectionGimmickSettings, float> mutation)
+        {
+            if (updatingControls)
+                return;
+
+            if (!tryParseFloat(box.Current.Value, out float percentValue))
+                return;
+
+            float clampedPercent = Math.Clamp(percentValue, 0f, 100f);
+            float roundedPercent = MathF.Round(clampedPercent, 2);
+            string formatted = formatFloat(roundedPercent, "0.##");
+
+            if (box.Current.Value != formatted)
+                box.Current.Value = formatted;
+
+            mutateSetting(s => mutation(s, roundedPercent / 100f));
+        }
+
         private void updateClampedDoubleSetting(FormNumberBox box, Action<SectionGimmickSettings, double> mutation, Func<double, double> clamp)
         {
             if (updatingControls)
@@ -1811,6 +1832,12 @@ namespace osu.Game.Rulesets.Osu.Edit
 
         private static string formatFloat(float value)
             => float.IsNaN(value) ? string.Empty : value.ToString(CultureInfo.InvariantCulture);
+
+        private static string formatFloat(float value, string format)
+            => float.IsNaN(value) ? string.Empty : value.ToString(format, CultureInfo.InvariantCulture);
+
+        private static string formatAccuracyPercent(float fraction)
+            => formatFloat(Math.Clamp(fraction, 0f, 1f) * 100f, "0.##");
 
         private static string formatOptionalWindowTime(float value)
             => value < 0 ? "-1" : formatFloat(value);

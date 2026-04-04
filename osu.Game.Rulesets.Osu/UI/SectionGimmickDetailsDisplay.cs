@@ -107,6 +107,9 @@ namespace osu.Game.Rulesets.Osu.UI
             if (settings.EnableNoMiss)
                 details.Add("NoMiss");
 
+            if (settings.EnableAccuracyRequirement)
+                details.Add($"ReqAcc: {(Math.Clamp(settings.RequiredAccuracy, 0f, 1f) * 100f):0.##}%");
+
             if (settings.EnableCountLimits)
             {
                 if (settings.Max300s >= 0)
