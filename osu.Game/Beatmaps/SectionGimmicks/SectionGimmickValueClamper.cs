@@ -26,6 +26,8 @@ namespace osu.Game.Beatmaps.SectionGimmicks
             settings.GreatOffsetThresholdMs = clampMin(settings.GreatOffsetThresholdMs, 0);
             settings.GreatOffsetPenaltyHP = clampMax(settings.GreatOffsetPenaltyHP, 0);
 
+            settings.RequiredAccuracy = clampZeroToOne(settings.RequiredAccuracy);
+
             if (!settings.AllowUnsafeDifficultyOverrideValues)
             {
                 settings.SectionCircleSize = ClampCircleSize(settings.SectionCircleSize);

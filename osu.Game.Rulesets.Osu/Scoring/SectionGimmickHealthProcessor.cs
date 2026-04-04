@@ -21,6 +21,9 @@ namespace osu.Game.Rulesets.Osu.Scoring
         private Dictionary<long, HitObjectGimmickSettings> objectSettingsById = new Dictionary<long, HitObjectGimmickSettings>();
         private Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings> objectSettingsLookup = new Dictionary<(double StartTime, int ComboIndexWithOffsets), HitObjectGimmickSettings>();
         private SectionGimmickSection? activeSection;
+        private double activeSectionAccuracyBaseScore;
+        private double activeSectionAccuracyMaxBaseScore;
+        private bool activeSectionAccuracyRequirementEvaluated;
 
         public SectionGimmickSection? ActiveSection => activeSection;
 
@@ -43,6 +46,9 @@ namespace osu.Game.Rulesets.Osu.Scoring
         {
             base.Update();
 
+            if (evaluateActiveSectionAccuracyRequirementIfNeeded(Time.Current))
+                return;
+
             var section = resolveSection(Time.Current);
             if (section == null)
                 return;
@@ -62,6 +68,12 @@ namespace osu.Game.Rulesets.Osu.Scoring
 
         protected override void ApplyResultInternal(JudgementResult result)
         {
+            if (activeSection != null && activeSection.EndTime >= 0 && result.HitObject.StartTime > activeSection.EndTime)
+            {
+                if (evaluateActiveSectionAccuracyRequirementIfNeeded(result.HitObject.StartTime))
+                    return;
+            }
+
             var section = resolveSection(result.HitObject.StartTime);
             var objectSettings = resolveObjectSettings(result.HitObject);
             SectionGimmickSettings? settings = null;
@@ -75,6 +87,9 @@ namespace osu.Game.Rulesets.Osu.Scoring
                     TriggerFailure();
                     return;
                 }
+
+                if (settings.EnableAccuracyRequirement)
+                    updateAccuracyRequirementTracking(settings, result);
 
                 if (settings.EnableNoMissedSliderEnd &&
                     (result.HitObject is SliderEndCircle || result.HitObject is SliderRepeat || result.HitObject is SliderTick) &&
@@ -90,6 +105,9 @@ namespace osu.Game.Rulesets.Osu.Scoring
                     TriggerFailure();
                     return;
                 }
+
+                if (evaluateActiveSectionAccuracyRequirementIfNeeded(result.HitObject.StartTime))
+                    return;
             }
 
             base.ApplyResultInternal(result);
@@ -194,6 +212,9 @@ namespace osu.Game.Rulesets.Osu.Scoring
             {
                 activeSection = section;
                 countTracker.EnterSection(section.Id);
+                activeSectionAccuracyBaseScore = 0;
+                activeSectionAccuracyMaxBaseScore = 0;
+                activeSectionAccuracyRequirementEvaluated = false;
 
                 var settings = section.Settings;
 
@@ -254,6 +275,8 @@ namespace osu.Game.Rulesets.Osu.Scoring
             {
                 result.EnableHPGimmick = sectionSettings.EnableHPGimmick;
                 result.EnableNoMiss = sectionSettings.EnableNoMiss;
+                result.EnableAccuracyRequirement = sectionSettings.EnableAccuracyRequirement;
+                result.RequiredAccuracy = sectionSettings.RequiredAccuracy;
                 result.EnableCountLimits = sectionSettings.EnableCountLimits;
                 result.EnableNoMissedSliderEnd = sectionSettings.EnableNoMissedSliderEnd;
                 result.EnableGreatOffsetPenalty = sectionSettings.EnableGreatOffsetPenalty;
@@ -307,5 +330,75 @@ namespace osu.Game.Rulesets.Osu.Scoring
 
             return result;
         }
+
+        private void updateAccuracyRequirementTracking(SectionGimmickSettings settings, JudgementResult result)
+        {
+            if (result.Type == HitResult.None)
+                return;
+
+            var type = result.Type;
+
+            if (type.AffectsAccuracy())
+            {
+                activeSectionAccuracyBaseScore += scoreBase(type);
+                activeSectionAccuracyMaxBaseScore += scoreBase(HitResult.Great);
+                return;
+            }
+
+            if (settings.Max300sAffectsSliderEndsAndTicks && type is HitResult.LargeTickHit or HitResult.SmallTickHit or HitResult.SliderTailHit)
+            {
+                activeSectionAccuracyBaseScore += scoreBase(HitResult.Great);
+                activeSectionAccuracyMaxBaseScore += scoreBase(HitResult.Great);
+            }
+            else if (settings.MaxMissesAffectsSliderEndAndTickMisses && type is HitResult.LargeTickMiss or HitResult.SmallTickMiss)
+            {
+                activeSectionAccuracyMaxBaseScore += scoreBase(HitResult.Great);
+            }
+            else if (settings.MaxMissesAffectsSliderEndAndTickMisses && type == HitResult.IgnoreMiss && result.HitObject is SliderEndCircle or SliderRepeat)
+            {
+                activeSectionAccuracyMaxBaseScore += scoreBase(HitResult.Great);
+            }
+        }
+
+        private static bool hasSectionEnded(SectionGimmickSection section, double hitObjectTime)
+            => section.EndTime >= 0 && hitObjectTime >= section.EndTime;
+
+        private bool evaluateActiveSectionAccuracyRequirementIfNeeded(double time)
+        {
+            if (activeSection == null || activeSectionAccuracyRequirementEvaluated)
+                return false;
+
+            if (!activeSection.Settings.EnableAccuracyRequirement)
+            {
+                activeSectionAccuracyRequirementEvaluated = true;
+                return false;
+            }
+
+            if (!hasSectionEnded(activeSection, time))
+                return false;
+
+            activeSectionAccuracyRequirementEvaluated = true;
+
+            double currentSectionAccuracy = activeSectionAccuracyMaxBaseScore > 0
+                ? activeSectionAccuracyBaseScore / activeSectionAccuracyMaxBaseScore
+                : 1;
+
+            if (currentSectionAccuracy + 0.0000001 < activeSection.Settings.RequiredAccuracy)
+            {
+                TriggerFailure();
+                return true;
+            }
+
+            return false;
+        }
+
+        private static double scoreBase(HitResult result)
+            => result switch
+            {
+                HitResult.Great => 300,
+                HitResult.Ok => 100,
+                HitResult.Meh => 50,
+                _ => 0,
+            };
     }
 }

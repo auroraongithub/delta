@@ -103,6 +103,12 @@ namespace osu.Game.Beatmaps.SectionGimmicks
                     validateValueWindow(section, settings.SectionOverallDifficulty, settings.EnableSectionOverallDifficultyWindow, settings.SectionOverallDifficultyStartTimeMs, settings.SectionOverallDifficultyEndTimeMs, settings.EnableGradualSectionOverallDifficultyChange, "SectionOverallDifficulty");
                 }
 
+                if (settings.EnableAccuracyRequirement)
+                {
+                    if (float.IsNaN(settings.RequiredAccuracy) || settings.RequiredAccuracy < 0 || settings.RequiredAccuracy > 1)
+                        throw new InvalidOperationException($"Section {section.Id}: RequiredAccuracy must be in [0, 1].");
+                }
+
                 if (!float.IsNaN(settings.FlashlightRadius) && (settings.FlashlightRadius < 20 || settings.FlashlightRadius > 400))
                     throw new InvalidOperationException($"Section {section.Id}: FlashlightRadius must be in [20, 400].");
 

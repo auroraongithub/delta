@@ -176,6 +176,99 @@ namespace osu.Game.Rulesets.Osu.Tests
             Assert.That(hp.Health.Value, Is.EqualTo(1.0).Within(0.0001));
         }
 
+        [Test]
+        public void TestAccuracyRequirementFailsWhenFirstPostSectionResultProcessedBelowThreshold()
+        {
+            var hit1 = new HitCircle { StartTime = 1000 };
+            var hit2 = new HitCircle { StartTime = 2000 };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(hit1);
+            beatmap.HitObjects.Add(hit2);
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 1500,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableAccuracyRequirement = true,
+                    RequiredAccuracy = 0.8f,
+                }
+            });
+
+            var hp = new SectionGimmickHealthProcessor(0);
+            hp.ApplyBeatmap(beatmap);
+
+            hp.ApplyResult(new OsuJudgementResult(hit1, hit1.CreateJudgement()) { Type = HitResult.Ok });
+            Assert.That(hp.HasFailed, Is.False);
+
+            hp.ApplyResult(new OsuJudgementResult(hit2, hit2.CreateJudgement()) { Type = HitResult.Great });
+
+            Assert.That(hp.HasFailed, Is.True);
+        }
+
+        [Test]
+        public void TestAccuracyRequirementPassesWhenSectionAccuracyMeetsThreshold()
+        {
+            var hit1 = new HitCircle { StartTime = 1000 };
+            var hit2 = new HitCircle { StartTime = 2000 };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(hit1);
+            beatmap.HitObjects.Add(hit2);
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableAccuracyRequirement = true,
+                    RequiredAccuracy = 0.75f,
+                }
+            });
+
+            var hp = new SectionGimmickHealthProcessor(0);
+            hp.ApplyBeatmap(beatmap);
+
+            hp.ApplyResult(new OsuJudgementResult(hit1, hit1.CreateJudgement()) { Type = HitResult.Great });
+            hp.ApplyResult(new OsuJudgementResult(hit2, hit2.CreateJudgement()) { Type = HitResult.Ok });
+
+            Assert.That(hp.HasFailed, Is.False);
+        }
+
+        [Test]
+        public void TestAccuracyRequirementFailsOnFirstHitAfterSectionEnd()
+        {
+            var hitInSection = new HitCircle { StartTime = 1000 };
+            var hitAfterSection = new HitCircle { StartTime = 3000 };
+
+            var beatmap = new OsuBeatmap();
+            beatmap.HitObjects.Add(hitInSection);
+            beatmap.HitObjects.Add(hitAfterSection);
+            beatmap.SectionGimmicks.Sections.Add(new SectionGimmickSection
+            {
+                Id = 0,
+                StartTime = 0,
+                EndTime = 2000,
+                Settings = new SectionGimmickSettings
+                {
+                    EnableAccuracyRequirement = true,
+                    RequiredAccuracy = 0.5f,
+                }
+            });
+
+            var hp = new SectionGimmickHealthProcessor(0);
+            hp.ApplyBeatmap(beatmap);
+
+            hp.ApplyResult(new OsuJudgementResult(hitInSection, hitInSection.CreateJudgement()) { Type = HitResult.Miss });
+            Assert.That(hp.HasFailed, Is.False, "Should not fail before section end is reached.");
+
+            hp.ApplyResult(new OsuJudgementResult(hitAfterSection, hitAfterSection.CreateJudgement()) { Type = HitResult.Great });
+            Assert.That(hp.HasFailed, Is.True, "Should fail on the first hit processed after the section end with insufficient section accuracy.");
+        }
+
         private static OsuJudgementResult createResultWithOffset(HitCircle hit, HitResult type, double offsetMs)
         {
             var result = new OsuJudgementResult(hit, hit.CreateJudgement())

@@ -437,6 +437,8 @@ namespace osu.Game.Beatmaps.Formats
         {
             if (settings.EnableHPGimmick) yield return "EnableHPGimmick=True";
             if (settings.EnableNoMiss) yield return "EnableNoMiss=True";
+            if (settings.EnableAccuracyRequirement) yield return "EnableAccuracyRequirement=True";
+            if (!float.IsNaN(settings.RequiredAccuracy)) yield return $"RequiredAccuracy={settings.RequiredAccuracy.ToString(CultureInfo.InvariantCulture)}";
             if (settings.EnableCountLimits) yield return "EnableCountLimits=True";
             if (settings.EnableNoMissedSliderEnd) yield return "EnableNoMissedSliderEnd=True";
             if (settings.EnableGreatOffsetPenalty) yield return "EnableGreatOffsetPenalty=True";

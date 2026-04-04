@@ -663,6 +663,8 @@ namespace osu.Game.Beatmaps.Formats
                     {
                         case "EnableHPGimmick": section.Settings.EnableHPGimmick = parseBool(value); break;
                         case "EnableNoMiss": section.Settings.EnableNoMiss = parseBool(value); break;
+                        case "EnableAccuracyRequirement": section.Settings.EnableAccuracyRequirement = parseBool(value); break;
+                        case "RequiredAccuracy": section.Settings.RequiredAccuracy = Parsing.ParseFloat(value); break;
                         case "EnableCountLimits": section.Settings.EnableCountLimits = parseBool(value); break;
                         case "EnableNoMissedSliderEnd": section.Settings.EnableNoMissedSliderEnd = parseBool(value); break;
                         case "EnableGreatOffsetPenalty": section.Settings.EnableGreatOffsetPenalty = parseBool(value); break;

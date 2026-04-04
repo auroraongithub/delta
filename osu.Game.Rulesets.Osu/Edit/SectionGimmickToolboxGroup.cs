@@ -85,6 +85,8 @@ namespace osu.Game.Rulesets.Osu.Edit
         private FillFlowContainer hpSliderRoutingFields = null!;
 
         private FormCheckBox enableNoMiss = null!;
+        private FormCheckBox enableAccuracyRequirement = null!;
+        private FormNumberBox requiredAccuracy = null!;
 
         private FormCheckBox enableCountLimits = null!;
         private FillFlowContainer countLimitFields = null!;
@@ -433,6 +435,15 @@ namespace osu.Game.Rulesets.Osu.Edit
                             enableNoMiss = new FormCheckBox
                             {
                                 Caption = "No Miss",
+                            },
+                            enableAccuracyRequirement = new FormCheckBox
+                            {
+                                Caption = "Accuracy requirement",
+                            },
+                            requiredAccuracy = new FormNumberBox(allowDecimals: true)
+                            {
+                                Caption = "Required accuracy (0-1)",
+                                TabbableContentContainer = this,
                             },
 
                             enableCountLimits = new FormCheckBox
@@ -1169,6 +1180,8 @@ namespace osu.Game.Rulesets.Osu.Edit
             showHpSliderRouting.Current.BindValueChanged(_ => updateGroupVisibility());
 
             enableNoMiss.Current.BindValueChanged(v => mutateSetting(s => s.EnableNoMiss = v.NewValue));
+            enableAccuracyRequirement.Current.BindValueChanged(v => mutateSetting(s => s.EnableAccuracyRequirement = v.NewValue));
+            bindFloatSetting(requiredAccuracy, (s, v) => s.RequiredAccuracy = v, v => Math.Clamp(v, 0f, 1f));
 
             enableCountLimits.Current.BindValueChanged(v => mutateSetting(s => s.EnableCountLimits = v.NewValue));
             bindIntSetting(max300s, (s, v) => s.Max300s = v, v => Math.Max(-1, v));
@@ -1387,6 +1400,8 @@ namespace osu.Game.Rulesets.Osu.Edit
                                                     || settings.HPMissAffectsSliderEndAndTickMisses;
 
                 enableNoMiss.Current.Value = settings.EnableNoMiss;
+                enableAccuracyRequirement.Current.Value = settings.EnableAccuracyRequirement;
+                requiredAccuracy.Current.Value = formatFloat(settings.RequiredAccuracy);
 
                 enableCountLimits.Current.Value = settings.EnableCountLimits;
                 max300s.Current.Value = settings.Max300s.ToString(CultureInfo.InvariantCulture);
@@ -1509,22 +1524,25 @@ namespace osu.Game.Rulesets.Osu.Edit
             scheduleFade(hpSliderRoutingFields, enableHpGimmick.Current.Value && showHpSliderRouting.Current.Value, 1);
             hpSliderRoutingFields.AlwaysPresent = enableHpGimmick.Current.Value && showHpSliderRouting.Current.Value;
 
-            scheduleFade(countLimitFields, enableCountLimits.Current.Value, 2);
+            scheduleFade(requiredAccuracy, enableAccuracyRequirement.Current.Value, 2);
+            requiredAccuracy.AlwaysPresent = enableAccuracyRequirement.Current.Value;
+
+            scheduleFade(countLimitFields, enableCountLimits.Current.Value, 3);
             countLimitFields.AlwaysPresent = enableCountLimits.Current.Value;
 
-            scheduleFade(countSliderRoutingFields, enableCountLimits.Current.Value && showCountSliderRouting.Current.Value, 3);
+            scheduleFade(countSliderRoutingFields, enableCountLimits.Current.Value && showCountSliderRouting.Current.Value, 4);
             countSliderRoutingFields.AlwaysPresent = enableCountLimits.Current.Value && showCountSliderRouting.Current.Value;
 
-            scheduleFade(greatOffsetFields, enableGreatOffsetPenalty.Current.Value, 4);
+            scheduleFade(greatOffsetFields, enableGreatOffsetPenalty.Current.Value, 5);
             greatOffsetFields.AlwaysPresent = enableGreatOffsetPenalty.Current.Value;
 
-            scheduleFade(difficultyOverrideFields, enableDifficultyOverrides.Current.Value, 5);
+            scheduleFade(difficultyOverrideFields, enableDifficultyOverrides.Current.Value, 6);
             difficultyOverrideFields.AlwaysPresent = enableDifficultyOverrides.Current.Value;
 
-            scheduleFade(gradualDifficultyChangeEndTime, enableGradualDifficultyChange.Current.Value, 6);
+            scheduleFade(gradualDifficultyChangeEndTime, enableGradualDifficultyChange.Current.Value, 7);
             gradualDifficultyChangeEndTime.AlwaysPresent = enableGradualDifficultyChange.Current.Value;
 
-            scheduleFade(setGradualFinishTimeButton, enableGradualDifficultyChange.Current.Value, 7);
+            scheduleFade(setGradualFinishTimeButton, enableGradualDifficultyChange.Current.Value, 8);
             setGradualFinishTimeButton.AlwaysPresent = enableGradualDifficultyChange.Current.Value;
 
             bool showCsWindow = enableDifficultyOverrides.Current.Value && enableSectionCircleSizeWindow.Current.Value;
@@ -1539,17 +1557,17 @@ namespace osu.Game.Rulesets.Osu.Edit
             scheduleFade(sectionOverallDifficultyWindowFields, showOdWindow, 14);
             sectionOverallDifficultyWindowFields.AlwaysPresent = showOdWindow;
 
-            scheduleFade(forceModsFields, showForceMods.Current.Value, 8);
+            scheduleFade(forceModsFields, showForceMods.Current.Value, 9);
             forceModsFields.AlwaysPresent = showForceMods.Current.Value;
 
-            scheduleFade(funModsFields, showFunMods.Current.Value, 9);
+            scheduleFade(funModsFields, showFunMods.Current.Value, 10);
             funModsFields.AlwaysPresent = showFunMods.Current.Value;
 
             bool showGradualFlRadius = showForceMods.Current.Value && forceFlashlight.Current.Value && enableGradualFlashlightRadiusChange.Current.Value;
-            scheduleFade(gradualFlashlightRadiusEndTime, showGradualFlRadius, 10);
+            scheduleFade(gradualFlashlightRadiusEndTime, showGradualFlRadius, 11);
             gradualFlashlightRadiusEndTime.AlwaysPresent = showGradualFlRadius;
 
-            scheduleFade(setFlGradualFinishTimeButton, showGradualFlRadius, 11);
+            scheduleFade(setFlGradualFinishTimeButton, showGradualFlRadius, 13);
             setFlGradualFinishTimeButton.AlwaysPresent = showGradualFlRadius;
         }
 

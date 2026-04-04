@@ -9,6 +9,8 @@ namespace osu.Game.Beatmaps.SectionGimmicks
     {
         public bool EnableHPGimmick { get; set; }
         public bool EnableNoMiss { get; set; }
+        public bool EnableAccuracyRequirement { get; set; }
+        public float RequiredAccuracy { get; set; } = float.NaN;
         public bool EnableCountLimits { get; set; }
         public bool EnableNoMissedSliderEnd { get; set; }
         public bool EnableGreatOffsetPenalty { get; set; }

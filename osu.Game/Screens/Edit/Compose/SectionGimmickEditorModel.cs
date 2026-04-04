@@ -269,6 +269,8 @@ namespace osu.Game.Screens.Edit.Compose
             {
                 EnableHPGimmick = settings.EnableHPGimmick,
                 EnableNoMiss = settings.EnableNoMiss,
+                EnableAccuracyRequirement = settings.EnableAccuracyRequirement,
+                RequiredAccuracy = settings.RequiredAccuracy,
                 EnableCountLimits = settings.EnableCountLimits,
                 EnableNoMissedSliderEnd = settings.EnableNoMissedSliderEnd,
                 EnableGreatOffsetPenalty = settings.EnableGreatOffsetPenalty,
