@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ppy/osu/master/assets/lazer.png" width="180" alt="osu! logo" />
+  <img src="https://raw.githubusercontent.com/auroraongithub/delta/master/assets/osudelta.png" width="180" alt="osu! logo" />
 </p>
 
-# delta
+# delta (deltalazer)
 
 community-driven fork of **osu!lazer** with section and hitobject gimmick systems for mapping and gameplay experiments
 
